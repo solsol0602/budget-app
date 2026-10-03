@@ -200,6 +200,7 @@ $("backupBtn").onclick=()=>{
 window.addEventListener("focus",()=>{if(user)loadAll()});
 setInterval(()=>{if(user)loadAll()},15000);
 getRate();init();
+navigator.serviceWorker?.register("./sw.js").catch(()=>{});
 </script>
 </body>
 </html>
