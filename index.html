@@ -324,7 +324,19 @@ async function del(id){
   if(r.error){alert("삭제 실패: "+r.error.message);return}
   transactions=transactions.filter(x=>x.id!==id);render();
 }
-function setType(t){txType=t;$("expenseBtn").className=t==="expense"?"active exp":"";$("incomeBtn").className=t==="income"?"active inc":"";$("withdrawBtn").className=t==="cash_withdrawal"?"active":"";$("category").disabled=t==="cash_withdrawal";$("categoryManageBtn").disabled=t==="cash_withdrawal";if(t==="cash_withdrawal"){$("category").value="현금" }}
+function setType(t){
+  txType=t;
+  $("expenseBtn").className=t==="expense"?"active exp":"";
+  $("incomeBtn").className=t==="income"?"active inc":"";
+  $("withdrawBtn").className=t==="cash_withdrawal"?"active":"";
+  $("category").disabled=t==="cash_withdrawal";
+  $("categoryManageBtn").disabled=t==="cash_withdrawal";
+  if(t==="cash_withdrawal"){
+    if(!categories.includes("현금")){categories.push("현금");categoryIcons.현금="💵"}
+    populateCategories("현금");
+    $("category").disabled=true;
+  }
+}
 $("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("saveBtn").onclick=save;
 
 let rate=9.0;
@@ -446,6 +458,7 @@ $("backupBtn").onclick=()=>{
 };
 window.addEventListener("focus",()=>{if(user)loadAll()});
 setInterval(()=>{if(user)loadAll()},15000);
+populateCategories("기타");
 getRate();init();
 navigator.serviceWorker?.register("./sw.js").catch(()=>{});
 </script>
