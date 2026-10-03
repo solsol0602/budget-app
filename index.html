@@ -20,14 +20,14 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .total{font-size:27px;font-weight:800;margin-top:4px}.green{color:var(--green)}.red{color:var(--red)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:10px}.field label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 2px}
 input,select{width:100%;height:44px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;color:var(--text);outline:none}
-input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.type button{height:42px;border-radius:11px;background:#f3f4f6;color:#6b7280}.type button.active.exp{background:#fee2e2;color:#991b1b;font-weight:700}.type button.active.inc{background:#dcfce7;color:#166534;font-weight:700}
+input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}.type.three{grid-template-columns:repeat(3,1fr)}.type button{height:42px;border-radius:11px;background:#f3f4f6;color:#6b7280}.type button.active.exp{background:#fee2e2;color:#991b1b;font-weight:700}.type button.active.inc{background:#dcfce7;color:#166534;font-weight:700}
 .primary{width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-weight:700}.secondary{height:40px;border-radius:10px;background:#f3f4f6;padding:0 12px;color:#374151}
 .tx{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.tx:last-child{border-bottom:0}.tx .desc{font-weight:650}.tx .meta{font-size:12px;color:var(--muted);margin-top:4px}.tx .amt{text-align:right;font-weight:750;white-space:nowrap}.tx .del{font-size:11px;color:var(--muted);background:none;margin-top:5px;padding:0}
 .empty{text-align:center;color:var(--muted);padding:24px 8px}.top-actions{display:flex;gap:7px;align-items:center}.status{font-size:11px;color:var(--muted);text-align:right;margin-top:7px}
 .setup{background:#fff7ed;border:1px solid #fed7aa}.setup h2{font-size:17px;margin:0 0 7px}.setup p{font-size:13px;line-height:1.6;margin:6px 0;color:#7c2d12}
 .auth{display:none}.auth.show{display:block}.app{display:none}.app.show{display:block}
 .notice{font-size:12px;color:var(--muted);line-height:1.55}.pill{display:inline-block;padding:4px 8px;border-radius:99px;background:#f3f4f6;font-size:11px;color:#4b5563}
-.calendar-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}.calendar-title{font-size:18px;font-weight:800}.calendar-nav{display:flex;gap:6px}.calendar-nav button{width:38px;height:36px;border-radius:10px;background:#f3f4f6;color:#374151;font-size:18px}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.calendar-week div{text-align:center;font-size:11px;color:var(--muted);padding:5px 0}.day{min-height:68px;border:1px solid transparent;border-radius:11px;background:#fafafa;padding:7px 5px;text-align:left;position:relative}.day.other{opacity:.35}.day.today{border-color:#9ca3af}.day.selected{background:#eef2ff;border-color:#6366f1}.day-num{font-size:12px;font-weight:700}.day-in,.day-out{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}.day-in{color:var(--green)}.day-out{color:var(--red)}.selected-day{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.selected-day h3{font-size:14px;margin:0 0 8px}.cal-tx{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}.cal-tx:last-child{border-bottom:0}.cal-tx .meta{font-size:11px;color:var(--muted);margin-top:2px}.cal-tx .amt{font-size:12px;font-weight:750;white-space:nowrap}.cal-delete{font-size:11px;color:var(--muted);background:#f3f4f6;border-radius:8px;padding:4px 7px;margin-left:8px;flex:none}.cat-select-row{display:flex;align-items:center;gap:7px}.cat-select-row select{flex:1;min-width:0}.cat-manage{height:44px;font-size:11px;color:#374151;background:#f3f4f6;border:1px solid var(--line);border-radius:11px;padding:0 11px;white-space:nowrap}.cat-manage:active{background:#e5e7eb}.modal{display:none;position:fixed;inset:0;background:#00000055;z-index:20;padding:18px;align-items:flex-end;justify-content:center}.modal.show{display:flex}.modal-card{width:min(520px,100%);max-height:80vh;overflow:auto;background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 40px #00000022}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.modal-head b{font-size:18px}.modal-close{width:34px;height:34px;border-radius:9px;background:#f3f4f6}.cat-add{display:flex;gap:8px;margin-bottom:12px}.cat-add input{height:40px}.cat-add button{height:40px;border-radius:10px;background:#111827;color:#fff;padding:0 13px;font-weight:700}.cat-list{display:flex;flex-direction:column;gap:7px}.cat-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 11px;border:1px solid var(--line);border-radius:11px}.cat-name{font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis}.cat-actions{display:flex;gap:5px;flex:none}.cat-actions button{font-size:11px;border-radius:8px;background:#f3f4f6;padding:5px 7px;color:#374151}.cat-icon{width:32px;height:32px;border-radius:9px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex:none}.cat-icon img{width:100%;height:100%;object-fit:cover}.cat-item-main{display:flex;align-items:center;gap:9px;min-width:0}.cat-actions button{white-space:nowrap}.cat-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:10px}@media(max-width:420px){.modal{padding:10px}.modal-card{padding:15px}}
+.calendar-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}.calendar-title{font-size:18px;font-weight:800}.calendar-nav{display:flex;gap:6px}.calendar-nav button{width:38px;height:36px;border-radius:10px;background:#f3f4f6;color:#374151;font-size:18px}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.calendar-week div{text-align:center;font-size:11px;color:var(--muted);padding:5px 0}.day{min-height:68px;border:1px solid transparent;border-radius:11px;background:#fafafa;padding:7px 5px;text-align:left;position:relative}.day.other{opacity:.35}.day.today{border-color:#9ca3af}.day.selected{background:#eef2ff;border-color:#6366f1}.day-num{font-size:12px;font-weight:700}.day-in,.day-out,.day-cash{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}.day-in{color:var(--green)}.day-out{color:var(--red)}.day-cash{color:#6b7280}.selected-day{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.selected-day h3{font-size:14px;margin:0 0 8px}.cal-tx{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}.cal-tx:last-child{border-bottom:0}.cal-tx .meta{font-size:11px;color:var(--muted);margin-top:2px}.cal-tx .amt{font-size:12px;font-weight:750;white-space:nowrap}.cal-delete{font-size:11px;color:var(--muted);background:#f3f4f6;border-radius:8px;padding:4px 7px;margin-left:8px;flex:none}.cat-select-row{display:flex;align-items:center;gap:7px}.cat-select-row select{flex:1;min-width:0}.cat-manage{height:44px;font-size:11px;color:#374151;background:#f3f4f6;border:1px solid var(--line);border-radius:11px;padding:0 11px;white-space:nowrap}.cat-manage:active{background:#e5e7eb}.modal{display:none;position:fixed;inset:0;background:#00000055;z-index:20;padding:18px;align-items:flex-end;justify-content:center}.modal.show{display:flex}.modal-card{width:min(520px,100%);max-height:80vh;overflow:auto;background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 40px #00000022}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.modal-head b{font-size:18px}.modal-close{width:34px;height:34px;border-radius:9px;background:#f3f4f6}.cat-add{display:flex;gap:8px;margin-bottom:12px}.cat-add input{height:40px}.cat-add button{height:40px;border-radius:10px;background:#111827;color:#fff;padding:0 13px;font-weight:700}.cat-list{display:flex;flex-direction:column;gap:7px}.cat-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 11px;border:1px solid var(--line);border-radius:11px}.cat-name{font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis}.cat-actions{display:flex;gap:5px;flex:none}.cat-actions button{font-size:11px;border-radius:8px;background:#f3f4f6;padding:5px 7px;color:#374151}.cat-icon{width:32px;height:32px;border-radius:9px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex:none}.cat-icon img{width:100%;height:100%;object-fit:cover}.cat-item-main{display:flex;align-items:center;gap:9px;min-width:0}.cat-actions button{white-space:nowrap}.cat-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:10px}@media(max-width:420px){.modal{padding:10px}.modal-card{padding:15px}}
 @media(max-width:420px){.day{min-height:58px;padding:6px 4px}.day-in,.day-out{font-size:8px}.calendar-grid{gap:3px}}
 @media(min-width:650px){.wrap{padding-top:30px}.card{padding:20px}}
 </style>
@@ -64,14 +64,15 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 <section class="card">
   <div class="label">총자산 (KRW 환산)</div><div class="total" id="total">₩0</div>
   <div class="grid2" style="margin-top:12px">
-    <div class="balance"><span class="label">원화</span><b id="krwBalance">₩0</b></div>
-    <div class="balance"><span class="label">엔화</span><b id="jpyBalance">¥0</b></div>
+    <div class="balance"><span class="label">원화(계좌)</span><b id="krwBalance">₩0</b></div>
+    <div class="balance"><span class="label">엔화(계좌)</span><b id="jpyBalance">¥0</b></div>
   </div>
+  <div class="balance" style="margin-top:10px"><span class="label">현금</span><b id="cashBalance">¥0</b><div class="notice" style="margin-top:3px">ATM 인출 등으로 보유 중인 현금</div></div>
 </section>
 
 <section class="card">
   <div class="label" style="margin-bottom:10px">거래 추가</div>
-  <div class="type"><button id="expenseBtn" class="active exp">지출</button><button id="incomeBtn">수입</button></div>
+  <div class="type three"><button id="expenseBtn" class="active exp">지출</button><button id="incomeBtn">수입</button><button id="withdrawBtn">🏧 현금 인출</button></div>
   <div class="row">
     <div class="field"><label>날짜</label><input id="date" type="date"></div>
     <div class="field"><label>금액</label><input id="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>
@@ -308,7 +309,7 @@ async function save(){
   if(!amount||amount<=0){alert("금액을 입력해줘.");return}
   if(!description){alert("내용을 입력해줘.");return}
   setSync("저장 중…");
-  const row={user_id:user.id,date:$("date").value,description,amount,currency:$("currency").value,category:$("category").value,type:txType};
+  const row={user_id:user.id,date:$("date").value,description,amount,currency:$("currency").value,category:txType==="cash_withdrawal"?"기타":$("category").value,type:txType};
   const r=await sb.from("transactions").insert(row).select().single();
   if(r.error){alert("저장 실패: "+r.error.message);setSync("저장 실패");return}
   transactions.unshift(r.data);render();$("amount").value="";$("description").value="";setSync("동기화 완료");
@@ -319,8 +320,8 @@ async function del(id){
   if(r.error){alert("삭제 실패: "+r.error.message);return}
   transactions=transactions.filter(x=>x.id!==id);render();
 }
-function setType(t){txType=t;$("expenseBtn").className=t==="expense"?"active exp":"";$("incomeBtn").className=t==="income"?"active inc":""}
-$("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("saveBtn").onclick=save;
+function setType(t){txType=t;$("expenseBtn").className=t==="expense"?"active exp":"";$("incomeBtn").className=t==="income"?"active inc":"";$("withdrawBtn").className=t==="cash_withdrawal"?"active":"";$("category").disabled=t==="cash_withdrawal";$("categoryManageBtn").disabled=t==="cash_withdrawal"}
+$("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("saveBtn").onclick=save;
 
 let rate=9.0;
 async function getRate(){
@@ -371,15 +372,15 @@ function renderCalendar(){
     const key=dateKey(y,m,d);
     const dayTx=transactions.filter(x=>x.date===key);
     let inc=0,out=0;
-    for(const x of dayTx){const v=krwValue(x);if(x.type==="income")inc+=v;else out+=v}
+    let cash=0;for(const x of dayTx){if(x.type==="cash_withdrawal"){cash+=krwValue(x);continue}const v=krwValue(x);if(x.type==="income")inc+=v;else out+=v}
     const el=document.createElement("button");
     el.type="button";el.className="day"+(other?" other":"");
     if(key===today)el.classList.add("today");
     if(key===selectedCalendarDate)el.classList.add("selected");
-    el.innerHTML='<div class="day-num"></div>'+(inc?'<div class="day-in"></div>':"")+(out?'<div class="day-out"></div>':"");
+    el.innerHTML='<div class="day-num"></div>'+(inc?'<div class="day-in"></div>':"")+(out?'<div class="day-out"></div>':"")+(cash?'<div class="day-cash"></div>':"");
     el.querySelector(".day-num").textContent=d;
     if(inc)el.querySelector(".day-in").textContent="+"+shortKrw(inc);
-    if(out)el.querySelector(".day-out").textContent="-"+shortKrw(out);
+    if(out)el.querySelector(".day-out").textContent="-"+shortKrw(out);if(cash)el.querySelector(".day-cash").textContent="🏧 "+shortKrw(cash);
     el.onclick=()=>{selectedCalendarDate=key;calendarYear=y;calendarMonth=m;renderCalendar()};
     grid.appendChild(el);
   }
@@ -394,11 +395,11 @@ function renderSelectedDay(){
   if(!list.length){box.innerHTML='<div class="empty" style="padding:12px 4px">이 날짜에는 거래가 없어.</div>';return}
   for(const x of list){
     const div=document.createElement("div");div.className="cal-tx";
-    const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
+    const isCash=x.type==="cash_withdrawal";const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
     div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px"><div style="min-width:0;display:flex;align-items:center;gap:7px"><div class="cal-desc" style="font-weight:650"></div><div class="meta" style="margin-top:0"></div></div><div style="display:flex;align-items:center;flex:none"><div class="amt '+cls+'"></div><button class="cal-delete">삭제</button></div></div>';
-    div.querySelector(".cal-desc").textContent=x.description;
-    div.querySelector(".meta").textContent=(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+resolveCategory(x.category);
-    div.querySelector(".amt").textContent=sign+(x.currency==="JPY"?yen(x.amount):won(x.amount));
+    div.querySelector(".cal-desc").textContent=isCash?"🏧 "+x.description:x.description;
+    div.querySelector(".meta").textContent=isCash?"현금 인출":(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+resolveCategory(x.category);
+    div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount)));
     div.querySelector(".cal-delete").onclick=()=>del(x.id);
     box.appendChild(div);
   }
@@ -407,25 +408,30 @@ $("prevMonth").onclick=()=>{calendarMonth--;if(calendarMonth<0){calendarMonth=11
 $("nextMonth").onclick=()=>{calendarMonth++;if(calendarMonth>11){calendarMonth=0;calendarYear++}selectedCalendarDate=dateKey(calendarYear,calendarMonth,1);renderCalendar()};
 
 function render(){
-  let krw=0,jpy=0,monthIn=0,monthOut=0;
+  let krw=0,jpy=0,cashKrw=0,cashJpy=0,monthIn=0,monthOut=0;
   const ym=new Date().toISOString().slice(0,7);
   for(const x of transactions){
+    if(x.type==="cash_withdrawal"){
+      if(x.currency==="KRW")cashKrw+=Number(x.amount);else cashJpy+=Number(x.amount);
+      continue;
+    }
     const sign=x.type==="income"?1:-1;
     if(x.currency==="KRW")krw+=sign*Number(x.amount);else jpy+=sign*Number(x.amount);
     if(x.date?.startsWith(ym)){const v=krwValue(x);if(sign>0)monthIn+=v;else monthOut+=v}
   }
   $("krwBalance").textContent=won(krw);$("jpyBalance").textContent=yen(jpy);
-  $("total").textContent=won(krw+jpy*rate);
+  $("cashBalance").textContent=cashKrw?(won(cashKrw)+(cashJpy?" + "+yen(cashJpy):"")):yen(cashJpy);
+  $("total").textContent=won(krw+jpy*rate+cashKrw+cashJpy*rate);
   $("monthSummary").textContent="수입 "+won(monthIn)+" · 지출 "+won(monthOut);
   const box=$("transactions");box.innerHTML="";
   if(!transactions.length){box.innerHTML='<div class="empty">아직 거래 내역이 없어.<br>위에서 첫 거래를 추가해봐.</div>';renderCalendar();return}
   for(const x of transactions){
-    const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
+    const isCash=x.type==="cash_withdrawal";const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
     const div=document.createElement("div");div.className="tx";
     div.innerHTML='<div><div class="desc"></div><div class="meta"></div><button class="del">삭제</button></div><div class="amt '+cls+'"></div>';
-    div.querySelector(".desc").textContent=x.description;
-    div.querySelector(".meta").textContent=(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+x.date+" · "+resolveCategory(x.category);
-    div.querySelector(".amt").textContent=sign+(x.currency==="JPY"?yen(x.amount):won(x.amount));
+    div.querySelector(".desc").textContent=isCash?"🏧 "+x.description:x.description;
+    div.querySelector(".meta").textContent=isCash?"현금 인출 · "+x.date:(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+x.date+" · "+resolveCategory(x.category);
+    div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount)));
     div.querySelector(".del").onclick=()=>del(x.id);box.appendChild(div);
   }
   renderCalendar();
