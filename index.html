@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="한일 가계부">
+<link rel="manifest" href="manifest.webmanifest">
+<title>한일 가계부</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--red:#dc2626;--blue:#2563eb;--green:#059669}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;border:0}.wrap{max-width:720px;margin:auto;padding:18px 14px 40px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}h1{font-size:24px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #00000006}
+.rate{display:flex;justify-content:space-between;align-items:center}.rate strong{font-size:22px}.rate small{display:block;color:var(--muted);margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.balance{padding:14px;border-radius:14px;background:#f8fafc}.balance b{display:block;font-size:20px;margin-top:5px}.label{font-size:12px;color:var(--muted)}
+.total{font-size:27px;font-weight:800;margin-top:4px}.green{color:var(--green)}.red{color:var(--red)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:10px}.field label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 2px}
+input,select{width:100%;height:44px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;color:var(--text);outline:none}
+input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.type button{height:42px;border-radius:11px;background:#f3f4f6;color:#6b7280}.type button.active.exp{background:#fee2e2;color:#991b1b;font-weight:700}.type button.active.inc{background:#dcfce7;color:#166534;font-weight:700}
+.primary{width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-weight:700}.secondary{height:40px;border-radius:10px;background:#f3f4f6;padding:0 12px;color:#374151}
+.tx{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.tx:last-child{border-bottom:0}.tx .desc{font-weight:650}.tx .meta{font-size:12px;color:var(--muted);margin-top:4px}.tx .amt{text-align:right;font-weight:750;white-space:nowrap}.tx .del{font-size:11px;color:var(--muted);background:none;margin-top:5px;padding:0}
+.empty{text-align:center;color:var(--muted);padding:24px 8px}.top-actions{display:flex;gap:7px;align-items:center}.status{font-size:11px;color:var(--muted);text-align:right;margin-top:7px}
+.setup{background:#fff7ed;border:1px solid #fed7aa}.setup h2{font-size:17px;margin:0 0 7px}.setup p{font-size:13px;line-height:1.6;margin:6px 0;color:#7c2d12}
+.auth{display:none}.auth.show{display:block}.app{display:none}.app.show{display:block}
+.notice{font-size:12px;color:var(--muted);line-height:1.55}.pill{display:inline-block;padding:4px 8px;border-radius:99px;background:#f3f4f6;font-size:11px;color:#4b5563}
+@media(min-width:650px){.wrap{padding-top:30px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>🇯🇵 🇰🇷 한일 가계부</h1><div class="sub">KRW + JPY · 자동 환율 · 기기 간 동기화</div></div>
+  <div class="top-actions"><button id="logoutBtn" class="secondary" style="display:none">로그아웃</button></div>
+</header>
+
+<section id="setup" class="card setup">
+  <h2>Supabase 연결 전입니다</h2>
+  <p>앱 화면은 준비됐어. 무료 클라우드 동기화를 쓰려면 Supabase 프로젝트를 만든 뒤 연결값을 넣어야 해.</p>
+  <div class="notice">이 단계에서는 앱 구조만 확인할 수 있고, 연결 후 iPhone과 PC에서 같은 계정으로 데이터를 공유하게 된다.</div>
+</section>
+
+<section id="auth" class="card auth">
+  <div class="type">
+    <button id="loginMode" class="active inc">로그인</button>
+    <button id="signupMode">회원가입</button>
+  </div>
+  <div class="field"><label>이메일</label><input id="email" type="email" autocomplete="email" placeholder="example@email.com"></div>
+  <div class="field"><label>비밀번호</label><input id="password" type="password" autocomplete="current-password" placeholder="6자 이상"></div>
+  <button id="authBtn" class="primary">로그인</button>
+  <div id="authMsg" class="status"></div>
+</section>
+
+<main id="app" class="app">
+<section class="card">
+  <div class="rate"><div><span class="label">현재 자동 환율</span><strong id="rateText">불러오는 중…</strong><small id="rateMeta">1,000 JPY 기준</small></div><button id="refreshRate" class="secondary">↻ 새로고침</button></div>
+</section>
+
+<section class="card">
+  <div class="label">총자산 (KRW 환산)</div><div class="total" id="total">₩0</div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="balance"><span class="label">원화</span><b id="krwBalance">₩0</b></div>
+    <div class="balance"><span class="label">엔화</span><b id="jpyBalance">¥0</b></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="label" style="margin-bottom:10px">거래 추가</div>
+  <div class="type"><button id="expenseBtn" class="active exp">지출</button><button id="incomeBtn">수입</button></div>
+  <div class="row">
+    <div class="field"><label>날짜</label><input id="date" type="date"></div>
+    <div class="field"><label>금액</label><input id="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>통화</label><select id="currency"><option value="JPY">JPY · 엔</option><option value="KRW">KRW · 원</option></select></div>
+    <div class="field"><label>카테고리</label><select id="category"><option>식비</option><option>교통</option><option>쇼핑</option><option>통신</option><option>주거</option><option>여행</option><option>생활</option><option>기타</option></select></div>
+  </div>
+  <div class="field"><label>내용</label><input id="description" placeholder="예: 편의점, 교통비, 월급"></div>
+  <button id="saveBtn" class="primary">거래 저장</button>
+</section>
+
+<section class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center"><div><div class="label">이번 달</div><b id="monthSummary">수입 ₩0 · 지출 ₩0</b></div><span class="pill" id="syncStatus">동기화 준비</span></div>
+</section>
+
+<section class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b>거래 내역</b><button id="backupBtn" class="secondary">JSON 백업</button></div>
+  <div id="transactions"></div>
+</section>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* Supabase 프로젝트를 만든 뒤 아래 두 값만 채우면 된다. */
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+let sb=null, user=null, transactions=[], mode="login", txType="expense";
+const $=id=>document.getElementById(id);
+const today=new Date().toISOString().slice(0,10);
+$("date").value=today;
+
+function configured(){return !SUPABASE_URL.startsWith("YOUR_")&&!SUPABASE_ANON_KEY.startsWith("YOUR_")}
+function won(n){return "₩"+Math.round(n||0).toLocaleString("ko-KR")}
+function yen(n){return "¥"+Math.round(n||0).toLocaleString("ja-JP")}
+function setSync(s){$("syncStatus").textContent=s}
+function showApp(){ $("setup").style.display="none"; $("auth").classList.remove("show"); $("app").classList.add("show"); $("logoutBtn").style.display="block" }
+function showAuth(){ $("setup").style.display="none"; $("auth").classList.add("show"); $("app").classList.remove("show"); $("logoutBtn").style.display="none" }
+
+async function init(){
+  if(!configured()){ $("setup").style.display="block"; return; }
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  const {data}=await sb.auth.getSession();
+  if(data.session){user=data.session.user;showApp();await loadAll();} else showAuth();
+  sb.auth.onAuthStateChange(async (_event,session)=>{user=session?.user||null;if(user){showApp();await loadAll()}else showAuth()});
+}
+async function auth(){
+  const email=$("email").value.trim(), password=$("password").value;
+  if(!email||password.length<6){$("authMsg").textContent="이메일과 6자 이상 비밀번호를 입력해줘.";return}
+  $("authMsg").textContent="처리 중…";
+  let r=mode==="login"?await sb.auth.signInWithPassword({email,password}):await sb.auth.signUp({email,password});
+  if(r.error){$("authMsg").textContent=r.error.message;return}
+  $("authMsg").textContent=mode==="login"?"로그인 완료":"가입 완료. 이메일 인증이 켜져 있다면 메일을 확인해줘.";
+}
+$("loginMode").onclick=()=>{mode="login";$("loginMode").className="active inc";$("signupMode").className="";$("authBtn").textContent="로그인"}
+$("signupMode").onclick=()=>{mode="signup";$("signupMode").className="active inc";$("loginMode").className="";$("authBtn").textContent="회원가입"}
+$("authBtn").onclick=auth;
+$("logoutBtn").onclick=async()=>{await sb.auth.signOut()};
+
+async function loadAll(){
+  setSync("동기화 중…");
+  const r=await sb.from("transactions").select("*").order("date",{ascending:false}).order("created_at",{ascending:false});
+  if(r.error){setSync("DB 설정 필요");console.error(r.error);return}
+  transactions=r.data||[];render();setSync("동기화 완료");
+}
+async function save(){
+  const amount=Number($("amount").value), description=$("description").value.trim();
+  if(!amount||amount<=0){alert("금액을 입력해줘.");return}
+  if(!description){alert("내용을 입력해줘.");return}
+  setSync("저장 중…");
+  const row={user_id:user.id,date:$("date").value,description,amount,currency:$("currency").value,category:$("category").value,type:txType};
+  const r=await sb.from("transactions").insert(row).select().single();
+  if(r.error){alert("저장 실패: "+r.error.message);setSync("저장 실패");return}
+  transactions.unshift(r.data);render();$("amount").value="";$("description").value="";setSync("동기화 완료");
+}
+async function del(id){
+  if(!confirm("이 거래를 삭제할까?"))return;
+  const r=await sb.from("transactions").delete().eq("id",id);
+  if(r.error){alert("삭제 실패: "+r.error.message);return}
+  transactions=transactions.filter(x=>x.id!==id);render();
+}
+function setType(t){txType=t;$("expenseBtn").className=t==="expense"?"active exp":"";$("incomeBtn").className=t==="income"?"active inc":""}
+$("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("saveBtn").onclick=save;
+
+let rate=9.0;
+async function getRate(){
+  $("rateText").textContent="불러오는 중…";
+  try{
+    const r=await fetch("https://api.frankfurter.app/latest?from=JPY&to=KRW",{cache:"no-store"});
+    const d=await r.json(); rate=Number(d.rates.KRW);
+    $("rateText").textContent=won(rate*1000);
+    $("rateMeta").textContent="1,000 JPY 기준 · 자동 환율";
+    render();
+  }catch(e){$("rateText").textContent=won(rate*1000);$("rateMeta").textContent="자동 환율 불러오기 실패 · 마지막 값 사용"}
+}
+$("refreshRate").onclick=getRate;
+
+function krwValue(x){return x.currency==="KRW"?Number(x.amount):Number(x.amount)*rate}
+function render(){
+  let krw=0,jpy=0,monthIn=0,monthOut=0;
+  const ym=new Date().toISOString().slice(0,7);
+  for(const x of transactions){
+    const sign=x.type==="income"?1:-1;
+    if(x.currency==="KRW")krw+=sign*Number(x.amount);else jpy+=sign*Number(x.amount);
+    if(x.date?.startsWith(ym)){const v=krwValue(x);if(sign>0)monthIn+=v;else monthOut+=v}
+  }
+  $("krwBalance").textContent=won(krw);$("jpyBalance").textContent=yen(jpy);
+  $("total").textContent=won(krw+jpy*rate);
+  $("monthSummary").textContent="수입 "+won(monthIn)+" · 지출 "+won(monthOut);
+  const box=$("transactions");box.innerHTML="";
+  if(!transactions.length){box.innerHTML='<div class="empty">아직 거래 내역이 없어.<br>위에서 첫 거래를 추가해봐.</div>';return}
+  for(const x of transactions){
+    const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
+    const div=document.createElement("div");div.className="tx";
+    div.innerHTML='<div><div class="desc"></div><div class="meta"></div><button class="del">삭제</button></div><div class="amt '+cls+'"></div>';
+    div.querySelector(".desc").textContent=x.description;
+    div.querySelector(".meta").textContent=x.date+" · "+x.category;
+    div.querySelector(".amt").textContent=sign+(x.currency==="JPY"?yen(x.amount):won(x.amount));
+    div.querySelector(".del").onclick=()=>del(x.id);box.appendChild(div);
+  }
+}
+$("backupBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),transactions},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hanil-budget-backup.json";a.click();URL.revokeObjectURL(a.href)
+};
+window.addEventListener("focus",()=>{if(user)loadAll()});
+setInterval(()=>{if(user)loadAll()},15000);
+getRate();init();
+</script>
+</body>
+</html>
