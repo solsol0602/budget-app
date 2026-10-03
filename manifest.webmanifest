@@ -1,0 +1,9 @@
+{
+  "name":"한일 가계부",
+  "short_name":"한일 가계부",
+  "start_url":".",
+  "display":"standalone",
+  "background_color":"#f4f5f7",
+  "theme_color":"#111827",
+  "lang":"ko"
+}
