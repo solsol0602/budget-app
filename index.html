@@ -125,8 +125,8 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 const SUPABASE_URL = "https://owrsabqpzlpmoztzgtug.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RIGWSwtEqJLxtvVP0__MPw_Ruk8EY-Y";
 
-const DEFAULT_CATEGORIES=["식비","교통","쇼핑","통신","주거","여행","생활","기타"];
-const DEFAULT_CATEGORY_ICONS={식비:"🍚",교통:"🚃",쇼핑:"🛍️",통신:"📱",주거:"🏠",여행:"✈️",생활:"🧴",기타:"📦"};
+const DEFAULT_CATEGORIES=["식비","교통","쇼핑","통신","주거","여행","생활","기타","현금"];
+const DEFAULT_CATEGORY_ICONS={식비:"🍚",교통:"🚃",쇼핑:"🛍️",통신:"📱",주거:"🏠",여행:"✈️",생활:"🧴",기타:"📦",현금:"💵"};
 let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null;
 const $=id=>document.getElementById(id);
 const now=new Date();
@@ -169,11 +169,17 @@ function normalizeCategories(list){
   if(!out.includes("기타")) out.push("기타");
   return out.length?out:[...DEFAULT_CATEGORIES];
 }
-function loadCategories(){
+async function loadCategories(){
   const settings=user?.user_metadata?.category_settings||{};
+  const version=Number(settings.version||1);
   categories=normalizeCategories(settings.categories||DEFAULT_CATEGORIES);
   categoryAliases=(settings.aliases&&typeof settings.aliases==="object")?settings.aliases:{};
   categoryIcons=(settings.icons&&typeof settings.icons==="object")?{...DEFAULT_CATEGORY_ICONS,...settings.icons}:{...DEFAULT_CATEGORY_ICONS};
+  if(version<2 && !categories.includes("현금")){
+    categories.push("현금");
+    categoryIcons.현금=categoryIcons.현금||"💵";
+    await saveCategorySettings(2);
+  }
   populateCategories($( "category" )?.value);
   renderCategoryManager();
 }
@@ -209,9 +215,9 @@ function renderCategoryManager(){
     box.appendChild(row);
   }
 }
-async function saveCategorySettings(){
+async function saveCategorySettings(version){
   setSync("카테고리 저장 중…");
-  const settings={categories,aliases:categoryAliases,icons:categoryIcons};
+  const settings={version:Number(version||2),categories,aliases:categoryAliases,icons:categoryIcons};
   const r=await sb.auth.updateUser({data:{category_settings:settings}});
   if(r.error){alert("카테고리 저장 실패: "+r.error.message);setSync("저장 실패");return false}
   if(r.data?.user)user=r.data.user;
