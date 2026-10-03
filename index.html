@@ -171,17 +171,15 @@ function normalizeCategories(list){
 }
 async function loadCategories(){
   const settings=user?.user_metadata?.category_settings||{};
-  const version=Number(settings.version||1);
   categories=normalizeCategories(settings.categories||DEFAULT_CATEGORIES);
   categoryAliases=(settings.aliases&&typeof settings.aliases==="object")?settings.aliases:{};
   categoryIcons=(settings.icons&&typeof settings.icons==="object")?{...DEFAULT_CATEGORY_ICONS,...settings.icons}:{...DEFAULT_CATEGORY_ICONS};
-  if(version<2 && !categories.includes("현금")){
-    categories.push("현금");
-    categoryIcons.현금=categoryIcons.현금||"💵";
-    await saveCategorySettings(2);
-  }
+  let changed=false;
+  if(!categories.includes("현금")){categories.push("현금");changed=true}
+  if(!categoryIcons.현금){categoryIcons.현금="💵";changed=true}
   populateCategories($( "category" )?.value);
   renderCategoryManager();
+  if(changed) await saveCategorySettings();
 }
 function resolveCategory(name){
   let current=String(name||"기타"), guard=0;
@@ -215,9 +213,9 @@ function renderCategoryManager(){
     box.appendChild(row);
   }
 }
-async function saveCategorySettings(version){
+async function saveCategorySettings(){
   setSync("카테고리 저장 중…");
-  const settings={version:Number(version||2),categories,aliases:categoryAliases,icons:categoryIcons};
+  const settings={version:2,categories,aliases:categoryAliases,icons:categoryIcons};
   const r=await sb.auth.updateUser({data:{category_settings:settings}});
   if(r.error){alert("카테고리 저장 실패: "+r.error.message);setSync("저장 실패");return false}
   if(r.data?.user)user=r.data.user;
@@ -315,7 +313,7 @@ async function save(){
   if(!amount||amount<=0){alert("금액을 입력해줘.");return}
   if(!description){alert("내용을 입력해줘.");return}
   setSync("저장 중…");
-  const row={user_id:user.id,date:$("date").value,description,amount,currency:$("currency").value,category:txType==="cash_withdrawal"?"기타":$("category").value,type:txType};
+  const row={user_id:user.id,date:$("date").value,description,amount,currency:$("currency").value,category:txType==="cash_withdrawal"?"현금":$("category").value,type:txType};
   const r=await sb.from("transactions").insert(row).select().single();
   if(r.error){alert("저장 실패: "+r.error.message);setSync("저장 실패");return}
   transactions.unshift(r.data);render();$("amount").value="";$("description").value="";setSync("동기화 완료");
@@ -326,7 +324,7 @@ async function del(id){
   if(r.error){alert("삭제 실패: "+r.error.message);return}
   transactions=transactions.filter(x=>x.id!==id);render();
 }
-function setType(t){txType=t;$("expenseBtn").className=t==="expense"?"active exp":"";$("incomeBtn").className=t==="income"?"active inc":"";$("withdrawBtn").className=t==="cash_withdrawal"?"active":"";$("category").disabled=t==="cash_withdrawal";$("categoryManageBtn").disabled=t==="cash_withdrawal"}
+function setType(t){txType=t;$("expenseBtn").className=t==="expense"?"active exp":"";$("incomeBtn").className=t==="income"?"active inc":"";$("withdrawBtn").className=t==="cash_withdrawal"?"active":"";$("category").disabled=t==="cash_withdrawal";$("categoryManageBtn").disabled=t==="cash_withdrawal";if(t==="cash_withdrawal"){$("category").value="현금" }}
 $("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("saveBtn").onclick=save;
 
 let rate=9.0;
