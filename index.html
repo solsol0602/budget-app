@@ -115,7 +115,8 @@ const SUPABASE_ANON_KEY = "sb_publishable_RIGWSwtEqJLxtvVP0__MPw_Ruk8EY-Y";
 
 let sb=null, user=null, transactions=[], mode="login", txType="expense";
 const $=id=>document.getElementById(id);
-const today=new Date().toISOString().slice(0,10);
+const now=new Date();
+const today=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
 $("date").value=today;
 
 function configured(){return !SUPABASE_URL.startsWith("YOUR_")&&!SUPABASE_ANON_KEY.startsWith("YOUR_")}
@@ -198,7 +199,7 @@ $("refreshRate").onclick=getRate;
 function krwValue(x){return x.currency==="KRW"?Number(x.amount):Number(x.amount)*rate}
 let calendarMonth=new Date().getMonth();
 let calendarYear=new Date().getFullYear();
-let selectedCalendarDate=new Date().toISOString().slice(0,10);
+let selectedCalendarDate=today;
 
 function fmtMonth(y,m){return y+"년 "+(m+1)+"월"}
 function pad2(n){return String(n).padStart(2,"0")}
@@ -265,7 +266,7 @@ function render(){
   $("total").textContent=won(krw+jpy*rate);
   $("monthSummary").textContent="수입 "+won(monthIn)+" · 지출 "+won(monthOut);
   const box=$("transactions");box.innerHTML="";
-  if(!transactions.length){box.innerHTML='<div class="empty">아직 거래 내역이 없어.<br>위에서 첫 거래를 추가해봐.</div>';return}
+  if(!transactions.length){box.innerHTML='<div class="empty">아직 거래 내역이 없어.<br>위에서 첫 거래를 추가해봐.</div>';renderCalendar();return}
   for(const x of transactions){
     const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
     const div=document.createElement("div");div.className="tx";
