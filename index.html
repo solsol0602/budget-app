@@ -133,7 +133,7 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="modal-head"><b>계좌 관리</b><button id="accountCloseBtn" class="modal-close" type="button">✕</button></div>
     <div class="cat-add"><input id="newAccount" maxlength="20" placeholder="예: 유초은행, 토스"><select id="newAccountCurrency" style="height:40px;width:120px"><option value="JPY">JPY</option><option value="KRW">KRW</option></select><button id="addAccountBtn" type="button">추가</button></div>
     <div id="accountList" class="account-list"></div>
-    <div class="cat-note">현금 계좌는 기본으로 만들어져 있어. 이름을 바꾸거나 삭제할 수 없고, 일반 계좌는 자유롭게 추가할 수 있어.</div>
+    <div class="cat-note">기본 계좌와 현금 보관처는 삭제할 수 없지만 이름은 바꿀 수 있어. 일반 계좌는 자유롭게 추가하거나 삭제할 수 있어.</div>
   </div>
 </div>
 <div id="categoryModal" class="modal">
@@ -252,24 +252,32 @@ function populateAccountSelects(){
   const main=$("accountSelect"),to=$("transferToSelect");
   if(!main||!to)return;
   const currency=$("currency")?.value||"JPY";
-  const transfer=txType==="transfer";
-  const sourceOptions=accounts.filter(a=>a.currency===currency);
+  const isTransfer=txType==="transfer",isWithdraw=txType==="cash_withdrawal";
+  const payment=$("paymentMethod")?.value||"account";
+  const sourceKind=(isTransfer||isWithdraw)?"account":(payment==="cash"?"cash":"account");
+  const sourceOptions=accounts.filter(a=>a.currency===currency&&a.kind===sourceKind);
   main.innerHTML="";
   for(const a of sourceOptions){
     const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name;main.appendChild(opt);
   }
-  const preferred=main.value||defaultAccountId(currency,"account");
+  const previous=main.value;
+  const preferred=previous||defaultAccountId(currency,payment);
   if(sourceOptions.some(a=>a.id===preferred))main.value=preferred;
   else if(sourceOptions[0])main.value=sourceOptions[0].id;
+
   to.innerHTML="";
-  const destOptions=accounts.filter(a=>a.currency===currency);
+  const destOptions=accounts.filter(a=>a.currency===currency&&a.kind==="account");
   for(const a of destOptions){
     const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name;to.appendChild(opt);
   }
   if(destOptions.length>1){
     const source=main.value;
-    const other=destOptions.find(a=>a.id!==source);
-    if(other)to.value=other.id;
+    const current=to.value;
+    if(current&&destOptions.some(a=>a.id===current&&a.id!==source))to.value=current;
+    else{
+      const other=destOptions.find(a=>a.id!==source);
+      if(other)to.value=other.id;
+    }
   }
 }
 function renderAccountManager(){
@@ -697,7 +705,7 @@ function setType(t){
 $("currency").onchange=()=>{populateAccountSelects();if(txType==="cash_withdrawal"){$("transferToSelect").value=cashAccountId($("currency").value)}};
 $("accountSelect").onchange=()=>{if(txType==="transfer")populateAccountSelects()};
 $("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("transferBtn").onclick=()=>setType("transfer");$("saveBtn").onclick=save;
-$("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account"};
+$("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
 
 let rate=9.0;
 async function getRate(){
@@ -755,7 +763,7 @@ function renderCalendar(){
     const key=dateKey(y,m,d);
     const dayTx=transactions.filter(x=>x.date===key);
     let inc=0,out=0;
-    let cash=0;for(const x of dayTx){if(x.type==="cash_withdrawal"){cash+=krwValue(x);continue}const v=krwValue(x);if(x.type==="income")inc+=v;else out+=v}
+    let cash=0;for(const x of dayTx){if(x.type==="transfer")continue;if(x.type==="cash_withdrawal"){cash+=krwValue(x);continue}const v=krwValue(x);if(x.type==="income")inc+=v;else out+=v}
     const el=document.createElement("button");
     el.type="button";el.className="day"+(other?" other":"");
     if(key===today)el.classList.add("today");
@@ -778,11 +786,11 @@ function renderSelectedDay(){
   if(!list.length){box.innerHTML='<div class="empty" style="padding:12px 4px">이 날짜에는 거래가 없어.</div>';return}
   for(const x of list){
     const div=document.createElement("div");div.className="cal-tx";
-    const isCash=x.type==="cash_withdrawal";const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
+    const isCash=x.type==="cash_withdrawal",isTransfer=x.type==="transfer";const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":(isTransfer?"":"red");
     div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px"><div style="min-width:0;display:flex;align-items:center;gap:7px"><div class="cal-desc" style="font-weight:650"></div><div class="meta" style="margin-top:0"></div></div><div style="display:flex;align-items:center;flex:none"><div class="amt '+cls+'"></div><button class="cal-delete">삭제</button></div></div>';
     div.querySelector(".cal-desc").textContent=isCash?"🏧 "+x.description:x.description;
     div.querySelector(".meta").textContent=isCash?"현금 인출 · "+paymentLabel(x):(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+resolveCategory(x.category)+" · "+paymentLabel(x);
-    div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount)));
+    div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(isTransfer?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount))));
     div.querySelector(".cal-delete").onclick=()=>del(x.id);
     box.appendChild(div);
   }
@@ -841,7 +849,7 @@ function render(){
   if(!transactions.length){box.innerHTML='<div class="empty">아직 거래 내역이 없어.<br>위에서 첫 거래를 추가해봐.</div>';renderCalendar();return}
   for(const x of transactions){
     const isCash=x.type==="cash_withdrawal",isTransfer=x.type==="transfer";
-    const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
+    const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":(isTransfer?"":"red");
     const div=document.createElement("div");div.className="tx";
     div.innerHTML='<div><div class="desc"></div><div class="meta"></div><button class="del">삭제</button></div><div class="amt '+cls+'"></div>';
     div.querySelector(".desc").textContent=isTransfer?"↔️ "+x.description:(isCash?"🏧 "+x.description:x.description);
