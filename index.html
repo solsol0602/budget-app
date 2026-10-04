@@ -388,23 +388,19 @@ function parseGroupedBulkText(raw){
   for(const line of raw.split(/\r?\n/)){
     const text=line.trim();
     if(!text)continue;
-    if(/^[-─_]+$/.test(text) || /소계|실제 구매 지출 합계|현금 인출 포함 총합계|100만원 환전|100만 원 환전/.test(text))continue;
     const dateMatch=text.match(/(\d{4}[\.\/]\d{1,2}[\.\/]\d{1,2}|\d{1,2}[\.\/]\d{1,2}|\d{1,2}월\s*\d{1,2}일)/);
-    if(dateMatch){
-      currentDate=normalizeDateInput(dateMatch[1]);
-      if(/^\s*\[.*\]\s*$/.test(text))continue;
-      if(/^(?:\[)?\s*\d/.test(text) && !/^\s*[-•]/.test(text))continue;
+    if(dateMatch) currentDate=normalizeDateInput(dateMatch[1]);
+    if(/^\s*\[.*지출\s*내역.*\]\s*$/.test(text)||/^\s*\d{1,2}월\s*\d{1,2}일\s*지출\s*내역/.test(text))continue;
+    if(/^\s*■/.test(text)){
+      currentCategory=groupedHeadingCategory(text.replace(/^\s*■\s*/,'').trim());
+      continue;
     }
-    const heading=text.match(/^■\s*(.+)$/);
-    if(heading){currentCategory=groupedHeadingCategory(heading[1]);continue}
+    if(/소계|실제 구매 지출 합계|현금 인출 포함 총합계|100만원 환전|100만 원 환전/.test(text))continue;
     if(!/^[-•]/.test(text))continue;
-    if(!currentDate){out.push({error:"날짜를 찾지 못함",raw:text});continue}
+    if(!currentDate){out.push({error:"날짜를 찾지 못함",raw:text});continue;}
     const parsed=parseBulkLine(currentDate+" "+text);
     if(!parsed)continue;
-    if(!parsed.error && currentCategory){
-      if(parsed.type==="cash_withdrawal")parsed.category="현금";
-      else parsed.category=currentCategory;
-    }
+    if(!parsed.error&&currentCategory)parsed.category=parsed.type==="cash_withdrawal"?"현금":currentCategory;
     out.push(parsed);
   }
   return out;
