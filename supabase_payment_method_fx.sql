@@ -42,3 +42,14 @@ alter table public.transactions
 
 create index if not exists transactions_user_account_date_idx
   on public.transactions(user_id, account_id, date desc);
+
+
+-- 한국 계좌 ↔ 일본 계좌처럼 통화가 다른 내부 이체 지원
+alter table public.transactions
+  add column if not exists transfer_to_amount numeric;
+
+alter table public.transactions
+  add column if not exists transfer_to_currency text;
+
+alter table public.transactions
+  add column if not exists transfer_fx_rate numeric;
