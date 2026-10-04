@@ -320,9 +320,9 @@ $("newCategory").addEventListener("keydown",e=>{if(e.key==="Enter")addCategory()
 let bulkDraft=[];
 function normalizeDateInput(raw){
   const s=raw.replace(/年/g,"/").replace(/月/g,"/").replace(/日/g,"").replace(/-/g,"/").trim();
-  let m=s.match(/^(\\d{4})[\\/.](\\d{1,2})[\\/.](\\d{1,2})$/);
+  let m=s.match(/^(\d{4})[\.\/](\d{1,2})[\.\/](\d{1,2})$/);
   if(m)return m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
-  m=s.match(/^(\\d{1,2})[\\/.](\\d{1,2})$/);
+  m=s.match(/^(\d{1,2})[\.\/](\d{1,2})$/);
   if(m)return new Date().getFullYear()+"-"+String(m[1]).padStart(2,"0")+"-"+String(m[2]).padStart(2,"0");
   return null;
 }
@@ -341,27 +341,27 @@ function guessCategory(text,isIncome){
   return "기타";
 }
 function parseBulkLine(line){
-  let text=line.trim().replace(/^[-•*]s*/,"");
+  let text=line.trim().replace(/^[-•*]\s*/,"");
   if(!text)return null;
-  let m=text.match(/^(\\d{4}[\\/.]\\d{1,2}[\\/.]\\d{1,2}|\\d{1,2}[\\/.]\\d{1,2}|\\d{1,2}월\\s*\\d{1,2}일)\\s*/);
+  let m=text.match(/^(\d{4}[\.\/]\d{1,2}[\.\/]\d{1,2}|\d{1,2}[\.\/]\d{1,2}|\d{1,2}월\s*\d{1,2}일)\s*/);
   if(!m)return {error:"날짜를 찾지 못함",raw:text};
   const date=normalizeDateInput(m[1]);let rest=text.slice(m[0].length);
   if(!date)return {error:"날짜 형식을 확인해줘",raw:text};
-  const jpyMatch=rest.match(/([\\d,]+(?:\\.\\d+)?)\\s*엔|([\\d,]+(?:\\.\\d+)?)\\s*JPY|¥\\s*([\\d,]+(?:\\.\\d+)?)/i);
-  const krwMatch=rest.match(/\\(\\s*[₩]?\\s*([\\d,]+)\\s*원?\\s*\\)/);
+  const jpyMatch=rest.match(/([\d,]+(?:\.\d+)?)\s*엔|([\d,]+(?:\.\d+)?)\s*JPY|¥\s*([\d,]+(?:\.\d+)?)/i);
+  const krwMatch=rest.match(/\(\s*[₩]?\s*([\d,]+)\s*원?\s*\)/);
   const bareMatch=!jpyMatch&&!krwMatch?rest.match(/(?:^|\\s)([\\d,]+(?:\\.\\d+)?)\\s*(?:원|₩)(?:\\s|$)/):null;
   if(!jpyMatch&&!bareMatch)return {error:"금액을 찾지 못함",date,raw:text};
   const jpy=jpyMatch?Number((jpyMatch[1]||jpyMatch[2]||jpyMatch[3]).replace(/,/g,"")):null;
   const krw=krwMatch?Number(krwMatch[1].replace(/,/g,"")):(bareMatch?Number(bareMatch[1].replace(/,/g,"")):null);
   const isKrw=!jpyMatch;
-  const isIncome=/\\b수입\\b|^용돈\\b|^월급\\b|^급여\\b|^환급\\b/i.test(rest);
+  const isIncome=/\b수입\b|^용돈\b|^월급\b|^급여\b|^환급\b/i.test(rest);
   const payment=/현금|cash|지갑/.test(rest.toLowerCase())?"cash":"account";
   const amount=isKrw?krw:jpy;
   const clean=rest
     .replace(jpyMatch||bareMatch||"", "")
     .replace(/\\(\\s*[₩]?\\s*[\\d,]+\\s*원?\\s*\\)/,"")
-    .replace(/\\b수입\\b|수입/ig,"")
-    .replace(/\\b현금\\b|cash|지갑/ig,"")
+    .replace(/\b수입\b|수입/ig,"")
+    .replace(/\b현금\b|cash|지갑/ig,"")
     .trim().replace(/[·|]+$/,"").trim();
   const category=guessCategory(clean,isIncome);
   const fx=(jpy&&krw)?(krw/jpy): (jpy?rate:null);
