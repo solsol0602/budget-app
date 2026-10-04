@@ -35,6 +35,7 @@ input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
 .account-list{display:flex;flex-direction:column;gap:7px;margin-top:10px}.account-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 11px;border:1px solid var(--line);border-radius:11px}.account-main{display:flex;align-items:center;gap:9px;min-width:0}.account-badge{width:32px;height:32px;border-radius:9px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}.account-name{font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-meta{font-size:11px;color:var(--muted);margin-top:2px}.account-actions{display:flex;gap:5px;flex:none}.account-actions button{font-size:11px;border-radius:8px;background:#f3f4f6;padding:5px 7px;color:#374151;white-space:nowrap}.account-summary{margin-top:9px}.account-summary-row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:12px}
 .stats-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.stats-head b{font-size:17px}.stats-month{height:38px;width:auto;min-width:128px}.stats-note{font-size:11px;color:var(--muted);margin-top:5px}
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat-box{padding:11px;border-radius:12px;background:#f8fafc}.stat-box .label{font-size:11px}.stat-box b{display:block;font-size:16px;margin-top:4px}.stat-box.net b{font-size:17px}
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.dash-box{padding:11px;border-radius:12px;background:#f8fafc;min-width:0}.dash-box .label{font-size:10px}.dash-box b{display:block;font-size:14px;margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chart-title{font-size:13px;font-weight:750;margin:16px 0 9px}.chart-row{display:grid;grid-template-columns:78px 1fr auto;align-items:center;gap:8px;margin:8px 0}.chart-label{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chart-track{height:11px;border-radius:999px;background:#eef0f2;overflow:hidden}.chart-fill{height:100%;border-radius:999px;background:#9ca3af}.chart-fill.red-fill{background:#ef4444}.chart-fill.green-fill{background:#10b981}.chart-value{font-size:11px;font-weight:700;white-space:nowrap}.chart-empty{font-size:12px;color:var(--muted);padding:7px 0}.stat-two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat-mini-list{display:flex;flex-direction:column;gap:6px}.stat-mini-row{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:5px 0;border-bottom:1px solid var(--line)}.stat-mini-row:last-child{border-bottom:0}
 @media(max-width:420px){.stats-grid{grid-template-columns:1fr 1fr}.stat-box.net{grid-column:1/-1}.chart-row{grid-template-columns:66px 1fr auto}}
 .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.filter-grid input,.filter-grid select{height:40px}.filter-wide{grid-column:1/-1}.edit-row{display:flex;gap:6px;margin-top:6px}.tx .edit{font-size:11px;color:var(--muted);background:#f3f4f6;border-radius:8px;padding:4px 7px;margin-top:5px}.form-edit-note{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:#eef2ff;color:#3730a3;font-size:12px}
@@ -45,6 +46,7 @@ input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
   h1{font-size:23px}
   .total{font-size:27px}
   .money-input{font-size:19px}
+  .dash-grid{grid-template-columns:1fr 1fr}.dash-box:last-child{grid-column:1/-1}
   .day{min-height:58px;padding:6px 4px}
   .day-in,.day-out{font-size:8px}
   .calendar-grid{gap:3px}
@@ -123,6 +125,11 @@ input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
 
 <section class="card">
   <div style="display:flex;justify-content:space-between;align-items:center"><div><div class="label">이번 달</div><b id="monthSummary">수입 ₩0 · 지출 ₩0</b></div><span class="pill" id="syncStatus">동기화 준비</span></div>
+  <div class="dash-grid">
+    <div class="dash-box"><span class="label">하루 평균 지출</span><b id="dashDailyAvg">₩0</b></div>
+    <div class="dash-box"><span class="label">가장 많이 쓴 곳</span><b id="dashTopCategory">-</b></div>
+    <div class="dash-box"><span class="label">지난달 대비 지출</span><b id="dashMoM">-</b></div>
+  </div>
 </section>
 <section class="card">
   <div class="stats-head"><div><b>월별 통계</b><div class="stats-note">지출/수입만 집계 · 이체와 현금 인출은 제외</div></div><select id="statsMonth" class="stats-month"></select></div>
@@ -1216,6 +1223,44 @@ function renderSimpleBars(boxId,rows,maxValue,opts={}){
     box.appendChild(row);
   }
 }
+function getPreviousMonthKey(key){
+  const [y,m]=String(key||"").split("-").map(Number);
+  if(!y||!m)return "";
+  const d=new Date(y,m-2,1);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+}
+function daysInMonth(key){
+  const [y,m]=String(key||"").split("-").map(Number);
+  return (y&&m)?new Date(y,m,0).getDate():30;
+}
+function daysElapsedInMonth(key){
+  if(key!==today.slice(0,7))return daysInMonth(key);
+  return Math.max(1,Number(today.slice(8,10)));
+}
+function renderDashboardSummary(){
+  const currentKey=today.slice(0,7);
+  const current=getMonthlyStats(currentKey);
+  const previous=getMonthlyStats(getPreviousMonthKey(currentKey));
+  const avg=current.expense/daysElapsedInMonth(currentKey);
+  $("dashDailyAvg").textContent=won(avg);
+
+  const top=Object.entries(current.category).sort((a,b)=>b[1]-a[1])[0];
+  $("dashTopCategory").textContent=top?resolveCategory(top[0])+" "+won(top[1]):"없음";
+
+  const momEl=$("dashMoM");
+  if(!current.expense&&!previous.expense){
+    momEl.textContent="비교 자료 없음";
+    momEl.className="";
+  }else if(!previous.expense){
+    momEl.textContent="지난달 ₩0";
+    momEl.className="";
+  }else{
+    const pct=((current.expense-previous.expense)/previous.expense)*100;
+    const sign=pct>0?"+":"";
+    momEl.textContent=sign+pct.toFixed(1)+"%";
+    momEl.className=pct>0?"red":"green";
+  }
+}
 function renderStats(){
   const select=$("statsMonth");if(!select)return;
   populateStatsMonths();
@@ -1318,6 +1363,7 @@ function render(){
   $("cashBalance").textContent=cashKrw?(won(cashKrw)+(cashJpy?" + "+yen(cashJpy):"")):(cashJpy?yen(cashJpy):"¥0");
   $("total").textContent=won(krw+jpy*rate+cashKrw+cashJpy*rate);
   $("monthSummary").textContent="수입 "+won(monthIn)+" · 지출 "+won(monthOut);
+  renderDashboardSummary();
 
   const summary=$("accountSummary");summary.innerHTML="";
   const shown=accounts.filter(a=>balances[a.id]!==0||a.system);
@@ -1359,7 +1405,7 @@ updateAmountSuffix();
 applyEntryDefaults("expense");
 getRate();
 init();
-navigator.serviceWorker?.register("./sw.js?v=38").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=39").catch(()=>{});
 </script>
 </body>
 </html>
