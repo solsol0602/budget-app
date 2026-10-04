@@ -451,7 +451,7 @@ function renderBulkPreview(){
     else{
       const sign=x.type==="income"?"+":"-";
       const amountText=x.type==="cash_withdrawal"?"🏧 "+(x.currency==="JPY"?yen(x.amount):won(x.amount)):sign+(x.currency==="JPY"?yen(x.amount):won(x.amount));
-      row.innerHTML='<span>'+x.date+" · "+(categoryIcons[x.category]||"📁")+" "+x.category+" · "+paymentLabel(x)+' · '+x.description+'</span><b>'+amountText+'</b>';
+      row.innerHTML='<span><b>'+x.date+'</b> · '+(categoryIcons[x.category]||"📁")+" "+x.category+" · "+paymentLabel(x)+' · '+x.description+'</span><b>'+amountText+'</b>';
     }
     box.appendChild(row);
   }
