@@ -348,6 +348,8 @@ function populateAccountSelects(){
   const isTransfer=txType==="transfer",isWithdraw=txType==="cash_withdrawal";
   const payment=$("paymentMethod")?.value||"account";
 
+  const previousMain=main.value;
+  const previousTo=to.value;
   const sourceKind=(isTransfer||isWithdraw)?"account":(payment==="cash"?"cash":"account");
   const sourceOptions=isTransfer
     ?accounts.filter(a=>a.kind==="account")
@@ -360,7 +362,6 @@ function populateAccountSelects(){
     main.appendChild(opt);
   }
 
-  const previousMain=main.value;
   const preferred=isTransfer
     ?(previousMain||defaultAccountId(currency,"account"))
     :(previousMain||defaultAccountId(currency,payment));
@@ -380,8 +381,9 @@ function populateAccountSelects(){
   }
 
   if(isTransfer&&destOptions.length){
-    const current=to.value;
-    if(!current||!destOptions.some(a=>a.id===current))to.value=destOptions[0].id;
+    const current=previousTo;
+    if(current&&destOptions.some(a=>a.id===current))to.value=current;
+    else to.value=destOptions[0].id;
   }
 
   const toAcct=isTransfer?getAccount(to.value):null;
