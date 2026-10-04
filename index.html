@@ -47,8 +47,8 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 </header>
 
 <section id="setup" class="card setup">
-  <h2>Supabase 연결 전입니다</h2>
-  <p>앱 화면은 준비됐어. 무료 클라우드 동기화를 쓰려면 Supabase 프로젝트를 만든 뒤 연결값을 넣어야 해.</p>
+  <h2>앱을 불러오는 중…</h2>
+  <p>잠시만 기다려줘. 앱과 클라우드 연결 상태를 확인하고 있어.</p>
   <div class="notice">이 단계에서는 앱 구조만 확인할 수 있고, 연결 후 iPhone과 PC에서 같은 계정으로 데이터를 공유하게 된다.</div>
 </section>
 
@@ -1153,7 +1153,7 @@ setInterval(()=>{if(user)loadAll()},15000);
 populateCategories("기타");
 populateAccountSelects();
 getRate();init();
-navigator.serviceWorker?.register("./sw.js").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=32").catch(()=>{});
 </script>
 </body>
 </html>
