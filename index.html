@@ -181,7 +181,7 @@ const DEFAULT_ACCOUNTS=[
   {id:"cash_krw",name:"현금 (KRW)",currency:"KRW",kind:"cash",system:true},
   {id:"cash_jpy",name:"현금 (JPY)",currency:"JPY",kind:"cash",system:true}
 ];
-let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null, accounts=[...DEFAULT_ACCOUNTS], editingId=null;
+let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null, accounts=[...DEFAULT_ACCOUNTS], editingId=null, filtersReady=false;
 const $=id=>document.getElementById(id);
 const now=new Date();
 const today=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
@@ -971,8 +971,10 @@ function getFilteredTransactions(){
   });
 }
 function setupTransactionFilters(){
+  if(filtersReady){populateTransactionFilters();return}
   ["txSearch","txMonthFilter","txTypeFilter","txCategoryFilter","txAccountFilter"].forEach(id=>$(id)?.addEventListener(id==="txSearch"?"input":"change",()=>render()));
   $("txFilterReset").onclick=()=>{$("txSearch").value="";$("txMonthFilter").value="all";$("txTypeFilter").value="all";$("txCategoryFilter").value="all";$("txAccountFilter").value="all";render()};
+  filtersReady=true;
   populateTransactionFilters();
 }
 function render(){
