@@ -328,8 +328,8 @@ function normalizeDateInput(raw){
 }
 function guessCategory(text,isIncome){
   const t=text.toLowerCase();
-  const explicit=categories.find(x=>t.includes(x.toLowerCase()));
-  if(explicit)return explicit;
+  const explicit=text.match(/\[([^\]]+)\]/);
+  if(explicit&&categories.includes(explicit[1]))return explicit[1];
   if(isIncome)return "기타";
   if(/전철|지하철|버스|택시|jr|小田急|電車|교통/.test(t))return "교통";
   if(/유니클로|uniqlo|쇼핑|비닐|옷|무신사|돈키|donki/.test(t))return "쇼핑";
@@ -354,7 +354,8 @@ function parseBulkLine(line){
   const jpy=jpyMatch?Number((jpyMatch[1]||jpyMatch[2]||jpyMatch[3]).replace(/,/g,"")):null;
   const krw=krwMatch?Number(krwMatch[1].replace(/,/g,"")):(bareMatch?Number(bareMatch[1].replace(/,/g,"")):null);
   const isKrw=!jpyMatch;
-  const isIncome=/\b수입\b|^용돈\b|^월급\b|^급여\b|^환급\b/i.test(rest);
+  const isWithdrawal=/ATM|현금\s*인출|현금인출|인출/.test(rest);
+  const isIncome=/수입|용돈|월급|급여|환급/.test(rest);
   const payment=/현금|cash|지갑/.test(rest.toLowerCase())?"cash":"account";
   const amount=isKrw?krw:jpy;
   const clean=rest
@@ -363,9 +364,9 @@ function parseBulkLine(line){
     .replace(/\b수입\b|수입/ig,"")
     .replace(/\b현금\b|cash|지갑/ig,"")
     .trim().replace(/[·|]+$/,"").trim();
-  const category=guessCategory(clean,isIncome);
+  const category=isWithdrawal?"현금":guessCategory(clean,isIncome);
   const fx=(jpy&&krw)?(krw/jpy): (jpy?rate:null);
-  return {date,description:clean||"일괄 입력",amount,currency:isKrw?"KRW":"JPY",category,type:isIncome?"income":"expense",payment_method:isIncome?"account":payment,fx_rate_krw_per_jpy:fx};
+  return {date,description:clean||"일괄 입력",amount,currency:isKrw?"KRW":"JPY",category,type:isWithdrawal?"cash_withdrawal":(isIncome?"income":"expense"),payment_method:(isWithdrawal||isIncome)?"account":payment,fx_rate_krw_per_jpy:fx};
 }
 function renderBulkPreview(){
   const box=$("bulkPreview");box.innerHTML="";
