@@ -687,7 +687,7 @@ function updateTransferAutoAmount(){
     return;
   }
   $("transferToAmount").disabled=true;
-  $("transferRateDisplay").value="현재 자동 환율";
+  $("transferRateDisplay").value="100 JPY = "+won(rate*100);
   const incoming=source.currency==="JPY"&&dest.currency==="KRW"
     ?amount*rate
     :(source.currency==="KRW"&&dest.currency==="JPY"?amount/rate:amount);
@@ -762,7 +762,7 @@ function setType(t){
   $("category").disabled=isTransfer||isWithdraw;
   $("categoryManageBtn").disabled=isTransfer||isWithdraw;
   $("paymentMethod").disabled=isTransfer||isWithdraw;
-  $("currencyField").style.opacity=isTransfer?"0.7":"1";
+  $("currencyField").style.display=isTransfer?"none":"block";
   $("currency").disabled=isTransfer;
   $("accountFieldLabel").textContent=isTransfer||isWithdraw?"출금 계좌":"사용 계좌";
 
@@ -803,6 +803,7 @@ async function getRate(){
     $("rateText").textContent=won(rate*100);
     $("rateMeta").textContent="100 JPY 기준 · 자동 환율";
     render();
+    updateTransferAutoAmount();
   }catch(e){
     const saved=Number(localStorage.getItem("hanil_rate"));
     if(Number.isFinite(saved)&&saved>0) rate=saved;
