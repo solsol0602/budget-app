@@ -349,7 +349,7 @@ function parseBulkLine(line){
   if(!date)return {error:"날짜 형식을 확인해줘",raw:text};
   const jpyMatch=rest.match(/([\d,]+(?:\.\d+)?)\s*엔|([\d,]+(?:\.\d+)?)\s*JPY|¥\s*([\d,]+(?:\.\d+)?)/i);
   const krwMatch=rest.match(/\(\s*[₩]?\s*([\d,]+)\s*원?\s*\)/);
-  const bareMatch=!jpyMatch&&!krwMatch?rest.match(/(?:^|\\s)([\\d,]+(?:\\.\\d+)?)\\s*(?:원|₩)(?:\\s|$)/):null;
+  const bareMatch=!jpyMatch&&!krwMatch?rest.match(/(?:^|\s)([\d,]+(?:\.\d+)?)\s*(?:원|₩)(?:\s|$)/):null;
   if(!jpyMatch&&!bareMatch)return {error:"금액을 찾지 못함",date,raw:text};
   const jpy=jpyMatch?Number((jpyMatch[1]||jpyMatch[2]||jpyMatch[3]).replace(/,/g,"")):null;
   const krw=krwMatch?Number(krwMatch[1].replace(/,/g,"")):(bareMatch?Number(bareMatch[1].replace(/,/g,"")):null);
@@ -359,7 +359,7 @@ function parseBulkLine(line){
   const amount=isKrw?krw:jpy;
   const clean=rest
     .replace(jpyMatch||bareMatch||"", "")
-    .replace(/\\(\\s*[₩]?\\s*[\\d,]+\\s*원?\\s*\\)/,"")
+    .replace(/\(\s*[₩]?\s*[\d,]+\s*원?\s*\)/,"")
     .replace(/\b수입\b|수입/ig,"")
     .replace(/\b현금\b|cash|지갑/ig,"")
     .trim().replace(/[·|]+$/,"").trim();
@@ -383,7 +383,7 @@ function renderBulkPreview(){
   $("bulkSaveBtn").style.display=ok.length&&ok.length===bulkDraft.length?"block":"none";
 }
 function analyzeBulk(){
-  const lines=$("bulkInput").value.split(/\\r?\\n/).filter(x=>x.trim());
+  const lines=$("bulkInput").value.split(/\r?\n/).filter(x=>x.trim());
   bulkDraft=lines.map(parseBulkLine).filter(Boolean);
   renderBulkPreview();
 }
