@@ -167,6 +167,7 @@ function normalizeCategories(list){
     if(name && !out.includes(name)) out.push(name);
   }
   if(!out.includes("기타")) out.push("기타");
+  if(!out.includes("현금")) out.push("현금");
   return out.length?out:[...DEFAULT_CATEGORIES];
 }
 async function loadCategories(){
@@ -188,6 +189,7 @@ function resolveCategory(name){
 }
 function populateCategories(preferred){
   const select=$("category"); if(!select)return;
+  if(!categories.includes("현금")){categories.push("현금");categoryIcons.현금=categoryIcons.현금||"💵"}
   select.innerHTML="";
   for(const name of categories){
     const opt=document.createElement("option");opt.value=name;opt.textContent=(categoryIcons[name]||"📁")+" "+name;select.appendChild(opt);
@@ -332,7 +334,8 @@ function setType(t){
   $("category").disabled=t==="cash_withdrawal";
   $("categoryManageBtn").disabled=t==="cash_withdrawal";
   if(t==="cash_withdrawal"){
-    if(!categories.includes("현금")){categories.push("현금");categoryIcons.현금="💵"}
+    if(!categories.includes("현금")){categories.push("현금")}
+    categoryIcons.현금=categoryIcons.현금||"💵";
     populateCategories("현금");
     $("category").disabled=true;
   }
@@ -428,7 +431,8 @@ function render(){
   const ym=new Date().toISOString().slice(0,7);
   for(const x of transactions){
     if(x.type==="cash_withdrawal"){
-      if(x.currency==="KRW")cashKrw+=Number(x.amount);else cashJpy+=Number(x.amount);
+      const amount=Number(x.amount);
+      if(x.currency==="KRW"){krw-=amount;cashKrw+=amount}else{jpy-=amount;cashJpy+=amount}
       continue;
     }
     const sign=x.type==="income"?1:-1;
