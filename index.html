@@ -212,12 +212,69 @@ function setSync(s){$("syncStatus").textContent=s}
 function showApp(){ $("setup").style.display="none"; $("auth").classList.remove("show"); $("app").classList.add("show"); $("logoutBtn").style.display="block" }
 function showAuth(){ $("setup").style.display="none"; $("auth").classList.add("show"); $("app").classList.remove("show"); $("logoutBtn").style.display="none" }
 
+function loadSupabaseFallback(){
+  return new Promise((resolve,reject)=>{
+    if(window.supabase?.createClient){resolve();return}
+    const sources=[
+      "https://unpkg.com/@supabase/supabase-js@2",
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    ];
+    let i=0;
+    const tryNext=()=>{
+      if(window.supabase?.createClient){resolve();return}
+      if(i>=sources.length){reject(new Error("Supabase 라이브러리를 불러오지 못했어. 네트워크 또는 브라우저 확장 프로그램에서 외부 스크립트가 차단됐을 수 있어."));return}
+      const s=document.createElement("script");
+      s.src=sources[i++];
+      s.onload=()=>window.supabase?.createClient?resolve():tryNext();
+      s.onerror=tryNext;
+      document.head.appendChild(s);
+    };
+    tryNext();
+  });
+}
+function withTimeout(promise,ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Supabase 연결 응답이 너무 오래 걸렸어.")),ms))
+  ]);
+}
 async function init(){
-  if(!configured()){ $("setup").style.display="block"; return; }
-  sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  const {data}=await sb.auth.getSession();
-  if(data.session){user=data.session.user;showApp();await loadCategories();await loadAccounts();await loadAll();} else showAuth();
-  sb.auth.onAuthStateChange(async (_event,session)=>{user=session?.user||null;if(user){showApp();await loadCategories();await loadAccounts();await loadAll()}else showAuth()});
+  try{
+    if(!configured()){ $("setup").style.display="block"; return; }
+    if(!window.supabase?.createClient) await loadSupabaseFallback();
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data,error}=await withTimeout(sb.auth.getSession(),10000);
+    if(error) throw error;
+    if(data.session){
+      user=data.session.user;
+      showApp();
+      await loadCategories();
+      await loadAccounts();
+      await loadAll();
+    } else {
+      showAuth();
+    }
+    sb.auth.onAuthStateChange(async (_event,session)=>{
+      user=session?.user||null;
+      if(user){
+        showApp();
+        try{
+          await loadCategories();
+          await loadAccounts();
+          await loadAll();
+        }catch(e){
+          console.error(e);
+          setSync("동기화 오류");
+        }
+      }else{
+        showAuth();
+      }
+    });
+  }catch(e){
+    console.error("init failed:",e);
+    $("setup").style.display="block";
+    $("setup").innerHTML='<h2>앱 초기화에 실패했어</h2><p>'+String(e?.message||e)+'</p><div class="notice">페이지를 새로고침하면 다시 시도해. 계속 나오면 브라우저가 Supabase 같은 외부 연결을 막고 있는지 확인하면 돼.</div>';
+  }
 }
 async function auth(){
   const email=$("email").value.trim(), password=$("password").value;
@@ -1152,8 +1209,9 @@ window.addEventListener("focus",()=>{if(user)loadAll()});
 setInterval(()=>{if(user)loadAll()},15000);
 populateCategories("기타");
 populateAccountSelects();
-getRate();init();
-navigator.serviceWorker?.register("./sw.js?v=32").catch(()=>{});
+getRate();
+init();
+navigator.serviceWorker?.register("./sw.js?v=33").catch(()=>{});
 </script>
 </body>
 </html>
