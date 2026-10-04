@@ -91,6 +91,10 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="field"><label id="accountFieldLabel">사용 계좌</label><select id="accountSelect"></select></div>
     <div class="field" id="transferToField" style="display:none"><label>입금 계좌</label><select id="transferToSelect"></select></div>
   </div>
+  <div class="row" id="transferAmountRow" style="display:none">
+    <div class="field"><label>받는 금액</label><input id="transferToAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="같은 통화면 자동"></div>
+    <div class="field"><label>적용 환율</label><input id="transferFxRate" type="number" inputmode="decimal" min="0" step="0.0001" placeholder="예: 100 JPY = 860 KRW"></div>
+  </div>
   <div class="field"><label>카테고리</label><div class="cat-select-row"><select id="category"></select><button id="categoryManageBtn" type="button" class="cat-manage">관리</button></div></div>
   <div class="field"><label>내용</label><input id="description" placeholder="예: 편의점, 교통비, 월급"></div>
   <button id="saveBtn" class="primary">거래 저장</button>
@@ -134,7 +138,7 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="modal-head"><b>계좌 관리</b><button id="accountCloseBtn" class="modal-close" type="button">✕</button></div>
     <div class="cat-add"><input id="newAccount" maxlength="20" placeholder="예: 유초은행, 토스"><select id="newAccountCurrency" style="height:40px;width:120px"><option value="JPY">JPY</option><option value="KRW">KRW</option></select><button id="addAccountBtn" type="button">추가</button></div>
     <div id="accountList" class="account-list"></div>
-    <div class="cat-note">기본 계좌와 현금 보관처는 삭제할 수 없지만 이름은 바꿀 수 있어. 일반 계좌는 자유롭게 추가하거나 삭제할 수 있어.</div>
+    <div class="cat-note">한국/일본 계좌를 원하는 은행 이름으로 설정할 수 있어. 예: 토스, 신한은행, ゆうちょ銀行. 통화도 KRW/JPY로 직접 선택하면 돼.</div>
   </div>
 </div>
 <div id="categoryModal" class="modal">
@@ -159,8 +163,8 @@ const SUPABASE_ANON_KEY = "sb_publishable_RIGWSwtEqJLxtvVP0__MPw_Ruk8EY-Y";
 const DEFAULT_CATEGORIES=["식비","교통","쇼핑","통신","주거","여행","생활","기타","현금"];
 const DEFAULT_CATEGORY_ICONS={식비:"🍚",교통:"🚃",쇼핑:"🛍️",통신:"📱",주거:"🏠",여행:"✈️",생활:"🧴",기타:"📦",현금:"💵"};
 const DEFAULT_ACCOUNTS=[
-  {id:"krw_main",name:"원화 계좌",currency:"KRW",kind:"account",system:true},
-  {id:"jpy_main",name:"엔화 계좌",currency:"JPY",kind:"account",system:true},
+  {id:"krw_main",name:"한국 계좌",currency:"KRW",kind:"account",system:true},
+  {id:"jpy_main",name:"일본 계좌",currency:"JPY",kind:"account",system:true},
   {id:"cash_krw",name:"현금 (KRW)",currency:"KRW",kind:"cash",system:true},
   {id:"cash_jpy",name:"현금 (JPY)",currency:"JPY",kind:"cash",system:true}
 ];
@@ -259,7 +263,7 @@ function populateAccountSelects(){
   const sourceOptions=accounts.filter(a=>a.currency===currency&&a.kind===sourceKind);
   main.innerHTML="";
   for(const a of sourceOptions){
-    const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name;main.appendChild(opt);
+    const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name+" · "+a.currency;main.appendChild(opt);
   }
   const previous=main.value;
   const preferred=previous||defaultAccountId(currency,payment);
@@ -267,17 +271,31 @@ function populateAccountSelects(){
   else if(sourceOptions[0])main.value=sourceOptions[0].id;
 
   to.innerHTML="";
-  const destOptions=accounts.filter(a=>a.currency===currency&&a.kind==="account");
+  const destOptions=accounts.filter(a=>a.kind==="account");
   for(const a of destOptions){
-    const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name;to.appendChild(opt);
+    const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name+" · "+a.currency;to.appendChild(opt);
   }
-  if(destOptions.length>1){
+
+  if(destOptions.length){
     const source=main.value;
     const current=to.value;
     if(current&&destOptions.some(a=>a.id===current&&a.id!==source))to.value=current;
     else{
+      const same=destOptions.find(a=>a.id!==source&&a.currency===currency);
       const other=destOptions.find(a=>a.id!==source);
-      if(other)to.value=other.id;
+      if(same)to.value=same.id;
+      else if(other)to.value=other.id;
+    }
+  }
+
+  if($("transferAmountRow")){
+    const toAcct=getAccount(to.value);
+    const sameCurrency=toAcct?.currency===currency;
+    $("transferAmountRow").style.display=isTransfer?"grid":"none";
+    $("transferFxRate").disabled=!isTransfer||sameCurrency;
+    if(isTransfer&&sameCurrency){
+      $("transferToAmount").value=$("amount")?.value||"";
+      $("transferFxRate").value="";
     }
   }
 }
@@ -658,17 +676,34 @@ async function save(){
   const paymentMethod=txType==="cash_withdrawal"?"account":(txType==="transfer"?"account":$("paymentMethod").value);
   if((txType==="transfer"||txType==="cash_withdrawal")&&!sourceId){alert("출금 계좌를 선택해줘.");setSync("입력 필요");return}
   if(txType==="transfer"&&(!destId||destId===sourceId)){alert("서로 다른 계좌를 선택해줘.");setSync("입력 필요");return}
+
+  const destAcct=txType==="transfer"?getAccount(destId):null;
+  let transferToAmount=null,transferFxRate=null;
+  if(txType==="transfer"){
+    if(!destAcct){alert("입금 계좌를 선택해줘.");setSync("입력 필요");return}
+    if(destAcct.currency===currency){
+      transferToAmount=amount;
+    }else{
+      transferToAmount=Number($("transferToAmount").value);
+      transferFxRate=Number($("transferFxRate").value);
+      if(!transferToAmount||transferToAmount<=0){alert("받는 금액을 입력해줘.");setSync("입력 필요");return}
+      if(!transferFxRate||transferFxRate<=0){alert("적용 환율을 입력해줘.");setSync("입력 필요");return}
+    }
+  }
+
   const row={
     user_id:user.id,date:$("date").value,description,amount,currency,
     category:txType==="cash_withdrawal"||txType==="transfer"?"기타":$("category").value,
-    type:txType,payment_method:paymentMethod,
-    account_id:sourceId,
+    type:txType,payment_method:paymentMethod,account_id:sourceId,
     transfer_to_account_id:txType==="transfer"?destId:(txType==="cash_withdrawal"?cashAccountId(currency):null),
+    transfer_to_amount:transferToAmount,
+    transfer_to_currency:txType==="transfer"?destAcct?.currency:null,
+    transfer_fx_rate:transferFxRate,
     fx_rate_krw_per_jpy:currency==="JPY"?rate:null
   };
   const r=await sb.from("transactions").insert(row).select().single();
-  if(r.error){alert("저장 실패: "+r.error.message+"\n\n계좌/이체 기능을 처음 쓰는 거라면 Supabase SQL 마이그레이션을 한 번 실행해야 해.");setSync("저장 실패");return}
-  transactions.unshift(r.data);render();$("amount").value="";$("description").value="";setSync("동기화 완료");
+  if(r.error){alert("저장 실패: "+r.error.message+"\n\nSupabase SQL 마이그레이션이 최신인지 확인해줘.");setSync("저장 실패");return}
+  transactions.unshift(r.data);render();$("amount").value="";$("description").value="";$("transferToAmount").value="";$("transferFxRate").value="";setSync("동기화 완료");
 }
 async function del(id){
   if(!confirm("이 거래를 삭제할까?"))return;
@@ -686,6 +721,7 @@ function setType(t){
   const isTransfer=t==="transfer",isWithdraw=t==="cash_withdrawal";
   $("paymentMethodField").style.display=isTransfer||isWithdraw?"none":"block";
   $("transferToField").style.display=isTransfer?"block":"none";
+  $("transferAmountRow").style.display=isTransfer?"grid":"none";
   $("category").disabled=isTransfer||isWithdraw;
   $("categoryManageBtn").disabled=isTransfer||isWithdraw;
   $("paymentMethod").disabled=isTransfer||isWithdraw;
@@ -698,13 +734,17 @@ function setType(t){
   if(isWithdraw){
     $("transferToSelect").value=cashAccountId($("currency").value);
     $("transferToSelect").disabled=true;
+    $("transferAmountRow").style.display="none";
   }else{
-    $("transferToSelect").disabled=false;
+    $("transferToSelect").disabled=!isTransfer;
   }
   populateAccountSelects();
 }
 $("currency").onchange=()=>{populateAccountSelects();if(txType==="cash_withdrawal"){$("transferToSelect").value=cashAccountId($("currency").value)}};
-$("accountSelect").onchange=()=>{if(txType==="transfer")populateAccountSelects()};
+$("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
+$("accountSelect").onchange=()=>populateAccountSelects();
+$("transferToSelect").onchange=()=>{if(txType==="transfer"){populateAccountSelects()}};
+$("amount").addEventListener("input",()=>{if(txType==="transfer"&&getAccount($("transferToSelect").value)?.currency===$("currency").value)$("transferToAmount").value=$("amount").value});
 $("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("transferBtn").onclick=()=>setType("transfer");$("saveBtn").onclick=save;
 $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
 
@@ -791,7 +831,7 @@ function renderSelectedDay(){
     div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px"><div style="min-width:0;display:flex;align-items:center;gap:7px"><div class="cal-desc" style="font-weight:650"></div><div class="meta" style="margin-top:0"></div></div><div style="display:flex;align-items:center;flex:none"><div class="amt '+cls+'"></div><button class="cal-delete">삭제</button></div></div>';
     div.querySelector(".cal-desc").textContent=isCash?"🏧 "+x.description:x.description;
     div.querySelector(".meta").textContent=isCash?"현금 인출 · "+paymentLabel(x):(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+resolveCategory(x.category)+" · "+paymentLabel(x);
-    div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(isTransfer?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount))));
+    div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(isTransfer?((x.currency==="JPY"?yen(x.amount):won(x.amount))+" → "+(x.transfer_to_currency==="JPY"?yen(x.transfer_to_amount):won(x.transfer_to_amount))):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount))));
     div.querySelector(".cal-delete").onclick=()=>del(x.id);
     box.appendChild(div);
   }
@@ -810,7 +850,8 @@ function render(){
     if(x.type==="transfer"){
       const from=accountIdForTransaction(x),to=x.transfer_to_account_id;
       if(from&&balances[from]!==undefined)balances[from]-=amount;
-      if(to&&balances[to]!==undefined)balances[to]+=amount;
+      const incoming=Number(x.transfer_to_amount)>0?Number(x.transfer_to_amount):amount;
+      if(to&&balances[to]!==undefined)balances[to]+=incoming;
       continue;
     }
     if(x.type==="cash_withdrawal"){
@@ -854,8 +895,8 @@ function render(){
     const div=document.createElement("div");div.className="tx";
     div.innerHTML='<div><div class="desc"></div><div class="meta"></div><button class="del">삭제</button></div><div class="amt '+cls+'"></div>';
     div.querySelector(".desc").textContent=isTransfer?"↔️ "+x.description:(isCash?"🏧 "+x.description:x.description);
-    div.querySelector(".meta").textContent=isTransfer?x.date+" · "+paymentLabel(x):(isCash?"현금 인출 · "+x.date+" · "+paymentLabel(x):(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+x.date+" · "+resolveCategory(x.category)+" · "+paymentLabel(x)+(x.currency==="JPY"?" · 당시 "+(transactionRate(x)*100).toFixed(1)+"원/100엔":""));
-    div.querySelector(".amt").textContent=isTransfer?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount))));
+    div.querySelector(".meta").textContent=isTransfer?x.date+" · "+paymentLabel(x)+(x.transfer_fx_rate?" · 환율 "+Number(x.transfer_fx_rate).toLocaleString()+" "+x.currency+"/"+x.transfer_to_currency:""):(isCash?"현금 인출 · "+x.date+" · "+paymentLabel(x):(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+x.date+" · "+resolveCategory(x.category)+" · "+paymentLabel(x)+(x.currency==="JPY"?" · 당시 "+(transactionRate(x)*100).toFixed(1)+"원/100엔":""));
+    div.querySelector(".amt").textContent=isTransfer?((x.currency==="JPY"?yen(x.amount):won(x.amount))+" → "+(x.transfer_to_currency==="JPY"?yen(x.transfer_to_amount):won(x.transfer_to_amount))):(isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount))));
     div.querySelector(".del").onclick=()=>del(x.id);box.appendChild(div);
   }
   renderCalendar();
