@@ -53,3 +53,13 @@ alter table public.transactions
 
 alter table public.transactions
   add column if not exists transfer_fx_rate numeric;
+
+
+-- 거래 수정 지원: 본인 거래만 수정할 수 있도록 UPDATE 권한 추가
+drop policy if exists transactions_update_own on public.transactions;
+
+create policy transactions_update_own
+on public.transactions
+for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
