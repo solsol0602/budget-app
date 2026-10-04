@@ -327,6 +327,48 @@ function defaultAccountId(currency,paymentMethod="account"){
   if(paymentMethod==="cash")return currency==="KRW"?"cash_krw":"cash_jpy";
   return currency==="KRW"?"krw_main":"jpy_main";
 }
+const ENTRY_PREFS_KEY="hanil_entry_defaults";
+function readEntryPrefs(){
+  try{
+    const v=JSON.parse(localStorage.getItem(ENTRY_PREFS_KEY)||"{}");
+    return v&&typeof v==="object"?v:{};
+  }catch(e){return {}}
+}
+function writeEntryPrefs(prefs){
+  try{localStorage.setItem(ENTRY_PREFS_KEY,JSON.stringify(prefs))}catch(e){}
+}
+function rememberEntryDefaults(type,data){
+  const prefs=readEntryPrefs();
+  prefs[type]={...(prefs[type]||{}),...data,saved_at:new Date().toISOString()};
+  writeEntryPrefs(prefs);
+}
+function applyEntryDefaults(type){
+  const p=readEntryPrefs()[type];
+  if(!p)return;
+
+  if(type==="expense"||type==="income"){
+    if(p.currency==="KRW"||p.currency==="JPY")$("currency").value=p.currency;
+    if(p.payment_method==="account"||p.payment_method==="cash")$("paymentMethod").value=p.payment_method;
+    populateAccountSelects();
+    if(p.account_id&&[...$("accountSelect").options].some(o=>o.value===p.account_id))$("accountSelect").value=p.account_id;
+    if(p.category&&categories.includes(p.category))$("category").value=p.category;
+  }else if(type==="cash_withdrawal"){
+    $("currency").value=(p.currency==="KRW"||p.currency==="JPY")?p.currency:"JPY";
+    populateAccountSelects();
+    if(p.account_id&&[...$("accountSelect").options].some(o=>o.value===p.account_id))$("accountSelect").value=p.account_id;
+    if(p.currency==="KRW"||p.currency==="JPY")$("transferToSelect").value=cashAccountId(p.currency);
+  }else if(type==="transfer"){
+    populateAccountSelects();
+    if(p.account_id&&[...$("accountSelect").options].some(o=>o.value===p.account_id)){
+      $("accountSelect").value=p.account_id;
+      populateAccountSelects();
+    }
+    if(p.transfer_to_account_id&&[...$("transferToSelect").options].some(o=>o.value===p.transfer_to_account_id)){
+      $("transferToSelect").value=p.transfer_to_account_id;
+      updateTransferAutoAmount();
+    }
+  }
+}
 function accountLabel(id){
   const a=getAccount(id);
   return a?a.name:"계좌";
@@ -849,6 +891,16 @@ async function save(){
   if(editingId)transactions=transactions.map(x=>x.id===editingId?r.data:x);
   else transactions.unshift(r.data);
 
+  if(!editingId){
+    rememberEntryDefaults(txType,{
+      currency,
+      payment_method:paymentMethod,
+      account_id:sourceId,
+      transfer_to_account_id:txType==="transfer"?destId:null,
+      category:txType==="expense"||txType==="income"?$("category").value:null
+    });
+  }
+
   resetTransactionForm();render();setSync("동기화 완료");
 }
 function resetTransactionForm(){
@@ -858,6 +910,7 @@ function resetTransactionForm(){
   $("saveBtn").textContent="거래 저장";
   $("amount").value="";$("description").value="";$("transferToAmount").value="";
   setType("expense");
+  applyEntryDefaults("expense");
 }
 function editTransaction(id){
   const x=transactions.find(t=>t.id===id);if(!x)return;
@@ -935,7 +988,11 @@ $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod"
 $("accountSelect").onchange=()=>populateAccountSelects();
 $("transferToSelect").onchange=()=>{if(txType==="transfer")updateTransferAutoAmount()};
 $("amount").addEventListener("input",()=>{if(txType==="transfer")updateTransferAutoAmount()});
-$("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("transferBtn").onclick=()=>setType("transfer");$("saveBtn").onclick=save;
+$("expenseBtn").onclick=()=>{setType("expense");applyEntryDefaults("expense")};
+$("incomeBtn").onclick=()=>{setType("income");applyEntryDefaults("income")};
+$("withdrawBtn").onclick=()=>{setType("cash_withdrawal");applyEntryDefaults("cash_withdrawal")};
+$("transferBtn").onclick=()=>{setType("transfer");applyEntryDefaults("transfer")};
+$("saveBtn").onclick=save;
 $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
 
 let rate=9.0;
@@ -1219,6 +1276,7 @@ window.addEventListener("focus",()=>{if(user)loadAll()});
 setInterval(()=>{if(user)loadAll()},15000);
 populateCategories("기타");
 populateAccountSelects();
+applyEntryDefaults("expense");
 getRate();
 init();
 navigator.serviceWorker?.register("./sw.js?v=33").catch(()=>{});
