@@ -84,7 +84,7 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="field"><label>금액</label><input id="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>
   </div>
   <div class="row">
-    <div class="field"><label>통화</label><select id="currency"><option value="JPY">JPY · 엔</option><option value="KRW">KRW · 원</option></select></div>
+    <div class="field" id="currencyField"><label>통화</label><select id="currency"><option value="JPY">JPY · 엔</option><option value="KRW">KRW · 원</option></select></div>
     <div class="field" id="paymentMethodField"><label>결제수단</label><select id="paymentMethod"><option value="account">🏦 계좌</option><option value="cash">💵 현금</option></select></div>
   </div>
   <div class="row">
@@ -92,8 +92,8 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="field" id="transferToField" style="display:none"><label>입금 계좌</label><select id="transferToSelect"></select></div>
   </div>
   <div class="row" id="transferAmountRow" style="display:none">
-    <div class="field"><label>받는 금액</label><input id="transferToAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="같은 통화면 자동"></div>
-    <div class="field"><label>적용 환율</label><input id="transferFxRate" type="number" inputmode="decimal" min="0" step="0.0001" placeholder="예: 100 JPY = 860 KRW"></div>
+    <div class="field"><label>받는 금액</label><input id="transferToAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="자동 계산"></div>
+    <div class="field"><label>적용 환율</label><input id="transferRateDisplay" type="text" value="현재 자동 환율" readonly></div>
   </div>
   <div class="field"><label>카테고리</label><div class="cat-select-row"><select id="category"></select><button id="categoryManageBtn" type="button" class="cat-manage">관리</button></div></div>
   <div class="field"><label>내용</label><input id="description" placeholder="예: 편의점, 교통비, 월급"></div>
@@ -259,45 +259,54 @@ function populateAccountSelects(){
   const currency=$("currency")?.value||"JPY";
   const isTransfer=txType==="transfer",isWithdraw=txType==="cash_withdrawal";
   const payment=$("paymentMethod")?.value||"account";
+
   const sourceKind=(isTransfer||isWithdraw)?"account":(payment==="cash"?"cash":"account");
-  const sourceOptions=accounts.filter(a=>a.currency===currency&&a.kind===sourceKind);
+  const sourceOptions=isTransfer
+    ?accounts.filter(a=>a.kind==="account")
+    :accounts.filter(a=>a.currency===currency&&a.kind===sourceKind);
+
   main.innerHTML="";
   for(const a of sourceOptions){
-    const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name+" · "+a.currency;main.appendChild(opt);
+    const opt=document.createElement("option");
+    opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name+" · "+a.currency;
+    main.appendChild(opt);
   }
-  const previous=main.value;
-  const preferred=previous||defaultAccountId(currency,payment);
+
+  const previousMain=main.value;
+  const preferred=isTransfer
+    ?(previousMain||defaultAccountId(currency,"account"))
+    :(previousMain||defaultAccountId(currency,payment));
   if(sourceOptions.some(a=>a.id===preferred))main.value=preferred;
   else if(sourceOptions[0])main.value=sourceOptions[0].id;
 
   to.innerHTML="";
-  const destOptions=accounts.filter(a=>a.kind==="account");
+  const selectedSource=getAccount(main.value);
+  const destOptions=isTransfer
+    ?accounts.filter(a=>a.kind==="account"&&a.id!==main.value)
+    :accounts.filter(a=>a.currency===currency&&a.kind==="account");
+
   for(const a of destOptions){
-    const opt=document.createElement("option");opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name+" · "+a.currency;to.appendChild(opt);
+    const opt=document.createElement("option");
+    opt.value=a.id;opt.textContent=accountIcon(a.id)+" "+a.name+" · "+a.currency;
+    to.appendChild(opt);
   }
 
-  if(destOptions.length){
-    const source=main.value;
+  if(isTransfer&&destOptions.length){
     const current=to.value;
-    if(current&&destOptions.some(a=>a.id===current&&a.id!==source))to.value=current;
-    else{
-      const same=destOptions.find(a=>a.id!==source&&a.currency===currency);
-      const other=destOptions.find(a=>a.id!==source);
-      if(same)to.value=same.id;
-      else if(other)to.value=other.id;
-    }
+    if(!current||!destOptions.some(a=>a.id===current))to.value=destOptions[0].id;
   }
+
+  const toAcct=isTransfer?getAccount(to.value):null;
+  const sourceCurrency=selectedSource?.currency||currency;
+  const sameCurrency=!toAcct||toAcct.currency===sourceCurrency;
 
   if($("transferAmountRow")){
-    const toAcct=getAccount(to.value);
-    const sameCurrency=toAcct?.currency===currency;
     $("transferAmountRow").style.display=isTransfer?"grid":"none";
-    $("transferFxRate").disabled=!isTransfer||sameCurrency;
-    if(isTransfer&&sameCurrency){
-      $("transferToAmount").value=$("amount")?.value||"";
-      $("transferFxRate").value="";
-    }
+    $("transferToAmount").disabled=sameCurrency;
+    $("transferRateDisplay").value=sameCurrency?"같은 통화 · 1:1":"현재 자동 환율";
   }
+
+  if(isTransfer)updateTransferAutoAmount();
 }
 function renderAccountManager(){
   const box=$("accountList");if(!box)return;
@@ -665,16 +674,40 @@ async function loadAll(){
   if(r.error){setSync("DB 설정 필요");console.error(r.error);return}
   transactions=r.data||[];render();setSync("동기화 완료");
 }
+function updateTransferAutoAmount(){
+  if(txType!=="transfer")return;
+  const source=getAccount($("accountSelect")?.value);
+  const dest=getAccount($("transferToSelect")?.value);
+  const amount=Number($("amount")?.value)||0;
+  if(!source||!dest||!amount)return;
+  if(source.currency===dest.currency){
+    $("transferToAmount").value=amount;
+    $("transferToAmount").disabled=true;
+    $("transferRateDisplay").value="같은 통화 · 1:1";
+    return;
+  }
+  $("transferToAmount").disabled=true;
+  $("transferRateDisplay").value="현재 자동 환율";
+  const incoming=source.currency==="JPY"&&dest.currency==="KRW"
+    ?amount*rate
+    :(source.currency==="KRW"&&dest.currency==="JPY"?amount/rate:amount);
+  $("transferToAmount").value=Number(incoming.toFixed(2));
+}
+
 async function save(){
   const amount=Number($("amount").value), description=$("description").value.trim();
   if(!amount||amount<=0){alert("금액을 입력해줘.");return}
   if(!description){alert("내용을 입력해줘.");return}
   setSync("저장 중…");
-  const currency=$("currency").value;
-  const sourceId=$("accountSelect").value||defaultAccountId(currency,"account");
+
+  const selectedSource=getAccount($("accountSelect").value);
+  if(!selectedSource){alert("출금 계좌를 선택해줘.");setSync("입력 필요");return}
+
+  const currency=txType==="transfer"?selectedSource.currency:$("currency").value;
+  const sourceId=selectedSource.id;
   const destId=$("transferToSelect").value||"";
   const paymentMethod=txType==="cash_withdrawal"?"account":(txType==="transfer"?"account":$("paymentMethod").value);
-  if((txType==="transfer"||txType==="cash_withdrawal")&&!sourceId){alert("출금 계좌를 선택해줘.");setSync("입력 필요");return}
+
   if(txType==="transfer"&&(!destId||destId===sourceId)){alert("서로 다른 계좌를 선택해줘.");setSync("입력 필요");return}
 
   const destAcct=txType==="transfer"?getAccount(destId):null;
@@ -684,10 +717,10 @@ async function save(){
     if(destAcct.currency===currency){
       transferToAmount=amount;
     }else{
-      transferToAmount=Number($("transferToAmount").value);
-      transferFxRate=Number($("transferFxRate").value);
-      if(!transferToAmount||transferToAmount<=0){alert("받는 금액을 입력해줘.");setSync("입력 필요");return}
-      if(!transferFxRate||transferFxRate<=0){alert("적용 환율을 입력해줘.");setSync("입력 필요");return}
+      transferFxRate=rate;
+      transferToAmount=currency==="JPY"&&destAcct.currency==="KRW"
+        ?amount*rate
+        :(currency==="KRW"&&destAcct.currency==="JPY"?amount/rate:amount);
     }
   }
 
@@ -701,9 +734,13 @@ async function save(){
     transfer_fx_rate:transferFxRate,
     fx_rate_krw_per_jpy:currency==="JPY"?rate:null
   };
+
   const r=await sb.from("transactions").insert(row).select().single();
-  if(r.error){alert("저장 실패: "+r.error.message+"\n\nSupabase SQL 마이그레이션이 최신인지 확인해줘.");setSync("저장 실패");return}
-  transactions.unshift(r.data);render();$("amount").value="";$("description").value="";$("transferToAmount").value="";$("transferFxRate").value="";setSync("동기화 완료");
+  if(r.error){alert("저장 실패: "+r.error.message+"\n\nSupabase 계좌/이체 마이그레이션을 확인해줘.");setSync("저장 실패");return}
+  transactions.unshift(r.data);render();
+  $("amount").value="";$("description").value="";$("transferToAmount").value="";
+  if($("transferRateDisplay"))$("transferRateDisplay").value="현재 자동 환율";
+  setSync("동기화 완료");
 }
 async function del(id){
   if(!confirm("이 거래를 삭제할까?"))return;
@@ -725,12 +762,15 @@ function setType(t){
   $("category").disabled=isTransfer||isWithdraw;
   $("categoryManageBtn").disabled=isTransfer||isWithdraw;
   $("paymentMethod").disabled=isTransfer||isWithdraw;
+  $("currencyField").style.opacity=isTransfer?"0.7":"1";
+  $("currency").disabled=isTransfer;
   $("accountFieldLabel").textContent=isTransfer||isWithdraw?"출금 계좌":"사용 계좌";
 
   if(isTransfer||isWithdraw){
     $("paymentMethod").value="account";
     $("category").value="기타";
   }
+  $("currency").disabled=isTransfer;
   if(isWithdraw){
     $("transferToSelect").value=cashAccountId($("currency").value);
     $("transferToSelect").disabled=true;
@@ -740,11 +780,11 @@ function setType(t){
   }
   populateAccountSelects();
 }
-$("currency").onchange=()=>{populateAccountSelects();if(txType==="cash_withdrawal"){$("transferToSelect").value=cashAccountId($("currency").value)}};
+$("currency").onchange=()=>{populateAccountSelects();if(txType==="cash_withdrawal")$("transferToSelect").value=cashAccountId($("currency").value)};
 $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
 $("accountSelect").onchange=()=>populateAccountSelects();
-$("transferToSelect").onchange=()=>{if(txType==="transfer"){populateAccountSelects()}};
-$("amount").addEventListener("input",()=>{if(txType==="transfer"&&getAccount($("transferToSelect").value)?.currency===$("currency").value)$("transferToAmount").value=$("amount").value});
+$("transferToSelect").onchange=()=>{if(txType==="transfer")updateTransferAutoAmount()};
+$("amount").addEventListener("input",()=>{if(txType==="transfer")updateTransferAutoAmount()});
 $("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("transferBtn").onclick=()=>setType("transfer");$("saveBtn").onclick=save;
 $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
 
