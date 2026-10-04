@@ -867,9 +867,12 @@ function editTransaction(id){
   else if(x.type==="income")setType("income");
   else setType("expense");
 
-  if(x.account_id)getAccount($("accountSelect").value) && ($("accountSelect").value=x.account_id);
   populateAccountSelects();
-  if(x.transfer_to_account_id){
+  if(x.account_id&&[...$("accountSelect").options].some(o=>o.value===x.account_id)){
+    $("accountSelect").value=x.account_id;
+    if(txType==="transfer")populateAccountSelects();
+  }
+  if(x.transfer_to_account_id&&[...$("transferToSelect").options].some(o=>o.value===x.transfer_to_account_id)){
     $("transferToSelect").value=x.transfer_to_account_id;
     if(x.transfer_to_amount)$("transferToAmount").value=x.transfer_to_amount;
     updateTransferAutoAmount();
