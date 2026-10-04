@@ -428,7 +428,7 @@ function renderBulkPreview(){
 function analyzeBulk(){
   const raw=$("bulkInput").value.trim();
   if(!raw){bulkDraft=[];renderBulkPreview();return}
-  const grouped=raw.split(/\r?\n/).some(x=>/^\s*\[.*\]\s*$/.test(x)||/^\s*■/.test(x));
+  const grouped=/■/.test(raw)||/지출\s*내역/.test(raw)||/소계/.test(raw);
   bulkDraft=grouped?parseGroupedBulkText(raw):raw.split(/\r?\n/).map(parseBulkLine).filter(Boolean);
   renderBulkPreview();
 }
