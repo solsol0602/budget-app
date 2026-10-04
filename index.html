@@ -425,7 +425,10 @@ function parseGroupedBulkText(raw,fallbackDate=null){
     if(!text)continue;
 
     const dateMatch=text.match(/(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)/);
-    if(dateMatch)currentDate=normalizeDateInput(dateMatch[1]);
+    if(dateMatch){
+      const parsedDate=normalizeDateInput(dateMatch[1]);
+      if(parsedDate)currentDate=parsedDate;
+    }
 
     if(/^\s*\[?.*지출\s*내역.*\]?\s*$/i.test(text)||/^\s*\d{1,2}월\s*\d{1,2}일\s*지출\s*내역/i.test(text))continue;
     if(/^\s*(?:■|[◆◇▶])/.test(text)){
@@ -435,7 +438,8 @@ function parseGroupedBulkText(raw,fallbackDate=null){
     if(/소계|실제 구매 지출 합계|현금 인출 포함 총합계|합계|총합|100만원 환전|100만 원 환전/i.test(text))continue;
     if(!/^[-•*]/.test(text))continue;
 
-    const parsed=parseBulkLine(currentDate?currentDate+" "+text:text,fallbackDate||today);
+    // 그룹형에서는 날짜를 문자열로 다시 붙이지 않고, 현재 그룹 날짜를 fallback으로 직접 전달한다.
+    const parsed=parseBulkLine(text,currentDate||fallbackDate||today);
     if(!parsed)continue;
     if(!parsed.error&&currentCategory)parsed.category=parsed.type==="cash_withdrawal"?"현금":currentCategory;
     out.push(parsed);
