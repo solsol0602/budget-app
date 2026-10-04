@@ -88,8 +88,8 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="field" id="paymentMethodField"><label>결제수단</label><select id="paymentMethod"><option value="account">🏦 계좌</option><option value="cash">💵 현금</option></select></div>
   </div>
   <div class="row">
-    <div class="field"><label id="accountFieldLabel">사용 계좌</label><select id="accountSelect"></select></div>
-    <div class="field" id="transferToField" style="display:none"><label>입금 계좌</label><select id="transferToSelect"></select></div>
+    <div class="field"><label id="accountFieldLabel">사용 계좌</label><div class="cat-select-row"><select id="accountSelect"></select><button id="accountManageInlineBtn" type="button" class="cat-manage">관리</button></div></div>
+    <div class="field" id="transferToField" style="display:none"><label>입금 계좌</label><div class="cat-select-row"><select id="transferToSelect"></select><button id="accountManageTransferBtn" type="button" class="cat-manage">관리</button></div></div>
   </div>
   <div class="row" id="transferAmountRow" style="display:none">
     <div class="field"><label>받는 금액</label><input id="transferToAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="자동 계산"></div>
@@ -136,9 +136,10 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 <div id="accountModal" class="modal">
   <div class="modal-card">
     <div class="modal-head"><b>계좌 관리</b><button id="accountCloseBtn" class="modal-close" type="button">✕</button></div>
+    <div class="notice" style="margin:-2px 0 12px">네가 실제로 쓰는 돈통을 원하는 이름으로 만들어두면 출금 계좌·입금 계좌에서 바로 선택할 수 있어.</div>
     <div class="cat-add"><input id="newAccount" maxlength="20" placeholder="예: 유초은행, 토스"><select id="newAccountCurrency" style="height:40px;width:120px"><option value="JPY">JPY</option><option value="KRW">KRW</option></select><button id="addAccountBtn" type="button">추가</button></div>
     <div id="accountList" class="account-list"></div>
-    <div class="cat-note">한국/일본 계좌를 원하는 은행 이름으로 설정할 수 있어. 예: 토스, 신한은행, ゆうちょ銀行. 통화도 KRW/JPY로 직접 선택하면 돼.</div>
+    <div class="cat-note">예: 토스뱅크(KRW), 하나은행 트래블월렛(JPY), 데이트 통장(KRW), ゆうちょ銀行(JPY)처럼 자유롭게 만들어서 사용할 수 있어. 이름 변경도 가능해.</div>
   </div>
 </div>
 <div id="categoryModal" class="modal">
@@ -346,7 +347,10 @@ async function deleteAccount(id){
   accounts=accounts.filter(x=>x.id!==id);
   await saveAccountSettings();
 }
-$("accountManageBtn").onclick=()=>{$("accountModal").classList.add("show");renderAccountManager()};
+const openAccountManager=()=>{$("accountModal").classList.add("show");renderAccountManager()};
+$("accountManageBtn").onclick=openAccountManager;
+$("accountManageInlineBtn").onclick=openAccountManager;
+$("accountManageTransferBtn").onclick=openAccountManager;
 $("accountCloseBtn").onclick=()=>{$("accountModal").classList.remove("show")};
 $("accountModal").onclick=e=>{if(e.target.id==="accountModal")$("accountModal").classList.remove("show")};
 $("addAccountBtn").onclick=addAccount;
