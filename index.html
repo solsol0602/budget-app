@@ -197,12 +197,12 @@ const DEFAULT_ACCOUNTS=[
   {id:"krw_main",name:"한국 계좌",currency:"KRW",kind:"account",system:true},
   {id:"jpy_main",name:"일본 계좌",currency:"JPY",kind:"account",system:true},
   {id:"cash_krw",name:"현금 (KRW)",currency:"KRW",kind:"cash",system:true},
-  {id:"cash_jpy",name:"현금 (JPY)",currency:"JPY",kind:"cash",system:true}
+  {id:"cash_jpy",name:"現金 (JPY)",currency:"JPY",kind:"cash",system:true}
 ];
-let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null, accounts=[...DEFAULT_ACCOUNTS], editingId=null, filtersReady=false, statsMonthKey=today.slice(0,7), statsReady=false;
 const $=id=>document.getElementById(id);
 const now=new Date();
 const today=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null, accounts=[...DEFAULT_ACCOUNTS], editingId=null, filtersReady=false, statsMonthKey=today.slice(0,7), statsReady=false;
 $("date").value=today;
 
 function configured(){return !SUPABASE_URL.startsWith("YOUR_")&&!SUPABASE_ANON_KEY.startsWith("YOUR_")}
