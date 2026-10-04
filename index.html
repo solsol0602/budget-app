@@ -1329,7 +1329,7 @@ function renderQuickInputs(){
       box.appendChild(btn);
     }
   };
-  add(recent,recent,"아직 빠른 입력으로 쓸 거래가 없어.");
+  add(recentBox,recent,"아직 빠른 입력으로 쓸 거래가 없어.");
   add(freqBox,frequent,"거래를 조금 더 기록하면 자주 쓰는 항목이 생겨.");
 }
 function getPreviousMonthKey(key){
@@ -1643,7 +1643,7 @@ updateAmountSuffix();
 applyEntryDefaults("expense");
 getRate();
 init();
-navigator.serviceWorker?.register("./sw.js?v=46").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=47").catch(()=>{});
 </script>
 </body>
 </html>
