@@ -32,7 +32,17 @@ alter table public.transactions
 
 alter table public.transactions
   add constraint transactions_type_check
-  check (type in ('income','expense','cash_withdrawal','transfer'));
+  check (type in ('income','expense','cash_withdrawal','transfer','adjustment'));
+
+alter table public.transactions
+  add column if not exists adjustment_sign text;
+
+alter table public.transactions
+  drop constraint if exists transactions_adjustment_sign_check;
+
+alter table public.transactions
+  add constraint transactions_adjustment_sign_check
+  check (adjustment_sign is null or adjustment_sign in ('increase','decrease'));
 
 alter table public.transactions
   add column if not exists account_id text;
