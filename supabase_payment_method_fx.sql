@@ -22,3 +22,23 @@ where payment_method is null;
 -- 기존 JPY 거래는 과거 실제 환율을 알 수 없으므로 환율을 임의로 덮어쓰지 않음.
 -- fx_rate_krw_per_jpy가 비어 있는 기존 거래는 앱이 현재 환율을 사용해 표시하고,
 -- 앞으로 저장하는 JPY 거래에는 저장 당시 환율이 기록됨.
+
+
+-- 계좌 관리 + 계좌 간 이체 지원
+-- 기존 거래는 account_id가 비어 있어도 앱이 통화/결제수단 기준으로 기본 계좌를 추정함.
+
+alter table public.transactions
+  drop constraint if exists transactions_type_check;
+
+alter table public.transactions
+  add constraint transactions_type_check
+  check (type in ('income','expense','cash_withdrawal','transfer'));
+
+alter table public.transactions
+  add column if not exists account_id text;
+
+alter table public.transactions
+  add column if not exists transfer_to_account_id text;
+
+create index if not exists transactions_user_account_date_idx
+  on public.transactions(user_id, account_id, date desc);
