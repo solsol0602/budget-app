@@ -11,18 +11,22 @@
 <title>한일 가계부</title>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#111827;--red:#dc2626;--blue:#2563eb;--green:#059669}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Noto Sans KR","Hiragino Sans","Yu Gothic UI","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button,input,select{font:inherit}button{cursor:pointer;border:0}.wrap{max-width:720px;margin:auto;padding:18px 14px 40px}
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}h1{font-size:24px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}h1{font-size:25px;letter-spacing:-.6px;margin:0;font-weight:800}.sub{font-size:12px;color:var(--muted);margin-top:4px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #00000006}
-.rate{display:flex;justify-content:space-between;align-items:center}.rate strong{font-size:22px;margin-left:8px}.rate small{display:block;color:var(--muted);margin-top:4px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.balance{padding:14px;border-radius:14px;background:#f8fafc}.balance b{display:block;font-size:20px;margin-top:5px}.label{font-size:12px;color:var(--muted)}
-.total{font-size:27px;font-weight:800;margin-top:4px}.green{color:var(--green)}.red{color:var(--red)}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:10px}.field label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 2px}
-input,select{width:100%;height:44px;border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 12px;color:var(--text);outline:none}
-input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}.type.three{grid-template-columns:repeat(3,1fr)}.type.four{grid-template-columns:repeat(4,1fr)}.type button{height:42px;border-radius:11px;background:#f3f4f6;color:#6b7280}.type button.active.exp{background:#fee2e2;color:#991b1b;font-weight:700}.type button.active.inc{background:#dcfce7;color:#166534;font-weight:700}
-.primary{width:100%;height:46px;border-radius:12px;background:var(--accent);color:#fff;font-weight:700}.secondary{height:40px;border-radius:10px;background:#f3f4f6;padding:0 12px;color:#374151}
-.tx{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.tx:last-child{border-bottom:0}.tx .desc{font-weight:650}.tx .meta{font-size:12px;color:var(--muted);margin-top:4px}.tx .amt{text-align:right;font-weight:750;white-space:nowrap}.tx .del{font-size:11px;color:var(--muted);background:none;margin-top:5px;padding:0}
+.rate{display:flex;justify-content:space-between;align-items:center}.rate strong{font-size:23px;margin-left:8px;font-variant-numeric:tabular-nums;letter-spacing:.1px}.rate small{display:block;color:var(--muted);margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.balance{padding:14px;border-radius:14px;background:#f8fafc}.balance b{display:block;font-size:20px;margin-top:5px;font-variant-numeric:tabular-nums;letter-spacing:.1px}.label{font-size:12px;color:var(--muted)}
+.total{font-size:29px;font-weight:800;margin-top:5px;letter-spacing:-.4px;font-variant-numeric:tabular-nums}.green{color:var(--green)}.red{color:var(--red)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:11px}.field label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px 2px}
+input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
+.money-input{font-size:20px;font-weight:750;letter-spacing:.2px;text-align:right;font-variant-numeric:tabular-nums}
+.money-input::placeholder{font-size:14px;font-weight:500;color:#9ca3af}
+.amount-wrap{position:relative}
+.amount-wrap .currency-suffix{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);font-weight:650;pointer-events:none}.type{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}.type.three{grid-template-columns:repeat(3,1fr)}.type.four{grid-template-columns:repeat(4,1fr)}.type button{height:44px;border-radius:12px;background:#f3f4f6;color:#6b7280;font-weight:650;transition:background .15s,transform .05s}.type button:active{transform:scale(.985)}.type button.active.exp{background:#fee2e2;color:#991b1b;font-weight:700}.type button.active.inc{background:#dcfce7;color:#166534;font-weight:700}
+.primary{width:100%;height:48px;border-radius:13px;background:var(--accent);color:#fff;font-weight:750;letter-spacing:-.2px}.secondary{height:40px;border-radius:10px;background:#f3f4f6;padding:0 12px;color:#374151;font-weight:650}
+.tx{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.tx:last-child{border-bottom:0}.tx .desc{font-weight:650}.tx .meta{font-size:12px;color:var(--muted);margin-top:4px}.tx .amt{text-align:right;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:.1px}.tx .del{font-size:11px;color:var(--muted);background:none;margin-top:5px;padding:0}
 .empty{text-align:center;color:var(--muted);padding:24px 8px}.top-actions{display:flex;gap:7px;align-items:center}.status{font-size:11px;color:var(--muted);text-align:right;margin-top:7px}
 .setup{background:#fff7ed;border:1px solid #fed7aa}.setup h2{font-size:17px;margin:0 0 7px}.setup p{font-size:13px;line-height:1.6;margin:6px 0;color:#7c2d12}
 .auth{display:none}.auth.show{display:block}.app{display:none}.app.show{display:block}
@@ -35,7 +39,17 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 @media(max-width:420px){.stats-grid{grid-template-columns:1fr 1fr}.stat-box.net{grid-column:1/-1}.chart-row{grid-template-columns:66px 1fr auto}}
 .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.filter-grid input,.filter-grid select{height:40px}.filter-wide{grid-column:1/-1}.edit-row{display:flex;gap:6px;margin-top:6px}.tx .edit{font-size:11px;color:var(--muted);background:#f3f4f6;border-radius:8px;padding:4px 7px;margin-top:5px}.form-edit-note{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:#eef2ff;color:#3730a3;font-size:12px}
 @media(max-width:520px){.type.four{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:420px){.day{min-height:58px;padding:6px 4px}.day-in,.day-out{font-size:8px}.calendar-grid{gap:3px}}
+@media(max-width:420px){
+  .wrap{padding:14px 10px 34px}
+  .card{padding:14px;border-radius:16px;margin:10px 0}
+  h1{font-size:23px}
+  .total{font-size:27px}
+  .money-input{font-size:19px}
+  .day{min-height:58px;padding:6px 4px}
+  .day-in,.day-out{font-size:8px}
+  .calendar-grid{gap:3px}
+  .account-actions{flex-wrap:wrap;justify-content:flex-end}
+}
 @media(min-width:650px){.wrap{padding-top:30px}.card{padding:20px}}
 </style>
 </head>
@@ -86,7 +100,7 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
   <div class="type four"><button id="expenseBtn" class="active exp">지출</button><button id="incomeBtn">수입</button><button id="withdrawBtn">🏧 현금 인출</button><button id="transferBtn">↔️ 이체</button></div>
   <div class="row">
     <div class="field"><label>날짜</label><input id="date" type="date"></div>
-    <div class="field"><label>금액</label><input id="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0"></div>
+    <div class="field"><label>금액</label><div class="amount-wrap"><span class="currency-suffix">금액</span><input id="amount" class="money-input" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div></div>
   </div>
   <div class="row">
     <div class="field" id="currencyField"><label>통화</label><select id="currency"><option value="JPY">JPY · 엔</option><option value="KRW">KRW · 원</option></select></div>
@@ -97,7 +111,7 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
     <div class="field" id="transferToField" style="display:none"><label>입금 계좌</label><div class="cat-select-row"><select id="transferToSelect"></select><button id="accountManageTransferBtn" type="button" class="cat-manage">관리</button></div></div>
   </div>
   <div class="row" id="transferAmountRow" style="display:none">
-    <div class="field"><label>받는 금액</label><input id="transferToAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="자동 계산"></div>
+    <div class="field"><label>받는 금액</label><input id="transferToAmount" class="money-input" type="text" inputmode="decimal" autocomplete="off" placeholder="자동 계산"></div>
     <div class="field"><label>적용 환율</label><input id="transferRateDisplay" type="text" value="현재 자동 환율" readonly></div>
   </div>
   <div class="field"><label>카테고리</label><div class="cat-select-row"><select id="category"></select><button id="categoryManageBtn" type="button" class="cat-manage">관리</button></div></div>
@@ -839,14 +853,50 @@ async function loadAll(){
   if(r.error){setSync("DB 설정 필요");console.error(r.error);return}
   transactions=r.data||[];render();setSync("동기화 완료");
 }
+function parseMoneyInput(value){
+  const n=Number(String(value??"").replace(/,/g,"").trim());
+  return Number.isFinite(n)?n:0;
+}
+function formatMoneyValue(value){
+  const n=parseMoneyInput(value);
+  if(!n)return value==="0"?"0":"";
+  return n.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:2});
+}
+function formatMoneyInput(el){
+  if(!el)return;
+  const original=String(el.value||"");
+  const caret=el.selectionStart??original.length;
+  const prefix=original.slice(0,caret).replace(/[^0-9.]/g,"");
+  let raw=original.replace(/,/g,"").replace(/[^0-9.]/g,"");
+  const dot=raw.indexOf(".");
+  if(dot>=0)raw=raw.slice(0,dot+1)+raw.slice(dot+1).replace(/\./g,"");
+  if(!raw){el.value="";return}
+  let [intPart,decPart]=raw.split(".");
+  intPart=intPart.replace(/^0+(?=\d)/,"")||"0";
+  if(intPart.length>12)intPart=intPart.slice(0,12);
+  let formatted=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,",");
+  if(dot>=0)formatted+="."+(decPart||"");
+  el.value=formatted;
+
+  let remaining=prefix.length,newCaret=0;
+  for(let i=0;i<formatted.length&&remaining>0;i++){
+    if(/[0-9.]/.test(formatted[i]))remaining--;
+    newCaret=i+1;
+  }
+  try{el.setSelectionRange(newCaret,newCaret)}catch(e){}
+}
+$("amount").addEventListener("input",()=>formatMoneyInput($("amount")));
+$("amount").addEventListener("blur",()=>formatMoneyInput($("amount")));
+$("transferToAmount").addEventListener("blur",()=>formatMoneyInput($("transferToAmount")));
+
 function updateTransferAutoAmount(){
   if(txType!=="transfer")return;
   const source=getAccount($("accountSelect")?.value);
   const dest=getAccount($("transferToSelect")?.value);
-  const amount=Number($("amount")?.value)||0;
+  const amount=parseMoneyInput($("amount")?.value);
   if(!source||!dest||!amount)return;
   if(source.currency===dest.currency){
-    $("transferToAmount").value=amount;
+    $("transferToAmount").value=formatMoneyValue(amount);
     $("transferToAmount").disabled=true;
     $("transferRateDisplay").value="같은 통화 · 1:1";
     return;
@@ -859,11 +909,11 @@ function updateTransferAutoAmount(){
   const incoming=source.currency==="JPY"&&dest.currency==="KRW"
     ?amount*fx
     :(source.currency==="KRW"&&dest.currency==="JPY"?amount/fx:amount);
-  $("transferToAmount").value=Number(incoming.toFixed(2));
+  $("transferToAmount").value=formatMoneyValue(Number(incoming.toFixed(2)));
 }
 
 async function save(){
-  const amount=Number($("amount").value), description=$("description").value.trim();
+  const amount=parseMoneyInput($("amount").value), description=$("description").value.trim();
   if(!amount||amount<=0){alert("금액을 입력해줘.");return}
   if(!description){alert("내용을 입력해줘.");return}
   setSync(editingId?"수정 저장 중…":"저장 중…");
@@ -935,7 +985,7 @@ function editTransaction(id){
   const x=transactions.find(t=>t.id===id);if(!x)return;
   editingId=id;
   $("date").value=x.date||today;
-  $("amount").value=x.amount||"";
+  $("amount").value=formatMoneyValue(x.amount);
   $("description").value=x.description||"";
   $("currency").value=x.currency||"JPY";
   $("paymentMethod").value=x.payment_method||"account";
@@ -953,7 +1003,7 @@ function editTransaction(id){
   }
   if(x.transfer_to_account_id&&[...$("transferToSelect").options].some(o=>o.value===x.transfer_to_account_id)){
     $("transferToSelect").value=x.transfer_to_account_id;
-    if(x.transfer_to_amount)$("transferToAmount").value=x.transfer_to_amount;
+    if(x.transfer_to_amount)$("transferToAmount").value=formatMoneyValue(x.transfer_to_amount);
     updateTransferAutoAmount();
   }
 
@@ -1298,7 +1348,7 @@ populateAccountSelects();
 applyEntryDefaults("expense");
 getRate();
 init();
-navigator.serviceWorker?.register("./sw.js?v=36").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=37").catch(()=>{});
 </script>
 </body>
 </html>
