@@ -100,7 +100,7 @@ input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
   <div class="type four"><button id="expenseBtn" class="active exp">지출</button><button id="incomeBtn">수입</button><button id="withdrawBtn">🏧 현금 인출</button><button id="transferBtn">↔️ 이체</button></div>
   <div class="row">
     <div class="field"><label>날짜</label><input id="date" type="date"></div>
-    <div class="field"><label>금액</label><div class="amount-wrap"><span class="currency-suffix">금액</span><input id="amount" class="money-input" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div></div>
+    <div class="field"><label>금액</label><div class="amount-wrap"><span id="amountSuffix" class="currency-suffix">¥</span><input id="amount" class="money-input" type="text" inputmode="decimal" autocomplete="off" placeholder="0"></div></div>
   </div>
   <div class="row">
     <div class="field" id="currencyField"><label>통화</label><select id="currency"><option value="JPY">JPY · 엔</option><option value="KRW">KRW · 원</option></select></div>
@@ -857,6 +857,15 @@ function parseMoneyInput(value){
   const n=Number(String(value??"").replace(/,/g,"").trim());
   return Number.isFinite(n)?n:0;
 }
+function updateAmountSuffix(){
+  const el=$("amountSuffix");if(!el)return;
+  let currency=$( "currency" )?.value||"JPY";
+  if(txType==="transfer"){
+    const source=getAccount($( "accountSelect" )?.value);
+    currency=source?.currency||currency;
+  }
+  el.textContent=currency==="KRW"?"₩":"¥";
+}
 function formatMoneyValue(value){
   const n=parseMoneyInput(value);
   if(!n)return value==="0"?"0":"";
@@ -1051,10 +1060,11 @@ function setType(t){
     $("transferToSelect").disabled=!isTransfer;
   }
   populateAccountSelects();
+  updateAmountSuffix();
 }
-$("currency").onchange=()=>{populateAccountSelects();if(txType==="cash_withdrawal")$("transferToSelect").value=cashAccountId($("currency").value)};
+$("currency").onchange=()=>{populateAccountSelects();updateAmountSuffix();if(txType==="cash_withdrawal")$("transferToSelect").value=cashAccountId($("currency").value)};
 $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
-$("accountSelect").onchange=()=>populateAccountSelects();
+$("accountSelect").onchange=()=>{populateAccountSelects();updateAmountSuffix();};
 $("transferToSelect").onchange=()=>{if(txType==="transfer")updateTransferAutoAmount()};
 $("amount").addEventListener("input",()=>{if(txType==="transfer")updateTransferAutoAmount()});
 $("expenseBtn").onclick=()=>{setType("expense");applyEntryDefaults("expense")};
@@ -1345,10 +1355,11 @@ window.addEventListener("focus",()=>{if(user)loadAll()});
 setInterval(()=>{if(user)loadAll()},15000);
 populateCategories("기타");
 populateAccountSelects();
+updateAmountSuffix();
 applyEntryDefaults("expense");
 getRate();
 init();
-navigator.serviceWorker?.register("./sw.js?v=37").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=38").catch(()=>{});
 </script>
 </body>
 </html>
