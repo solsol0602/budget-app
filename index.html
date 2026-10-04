@@ -377,6 +377,7 @@ function parseBulkLine(line,fallbackDate=null){
     .replace(jpyMatch||bareKrwMatch||"","")
     .replace(krwParenMatch||"","")
     .replace(/\[\s*[^\]]+\s*\]/g,"")
+    .replace(/^(?:\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)\s*[-:：·]?\s*/,"")
     .replace(/(?:카테고리|분류)\s*[:：]?\s*[^\s,·|]+/ig,"")
     .replace(/(?:수입|용돈|월급|급여|입금|환급|받은\s*돈)/ig,"")
     .replace(/(?:ATM|현금\s*인출|현금인출|출금)/ig,"")
@@ -423,7 +424,7 @@ function parseGroupedBulkText(raw,fallbackDate=null){
     const text=line.trim();
     if(!text)continue;
 
-    const dateMatch=text.match(/(\d{4}[\.\/]\d{1,2}[\.\/]\d{1,2}|\d{1,2}[\.\/]\d{1,2}|\d{1,2}월\s*\d{1,2}일)/);
+    const dateMatch=text.match(/(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)/);
     if(dateMatch)currentDate=normalizeDateInput(dateMatch[1]);
 
     if(/^\s*\[?.*지출\s*내역.*\]?\s*$/i.test(text)||/^\s*\d{1,2}월\s*\d{1,2}일\s*지출\s*내역/i.test(text))continue;
@@ -451,7 +452,7 @@ function renderBulkPreview(){
     else{
       const sign=x.type==="income"?"+":"-";
       const amountText=x.type==="cash_withdrawal"?"🏧 "+(x.currency==="JPY"?yen(x.amount):won(x.amount)):sign+(x.currency==="JPY"?yen(x.amount):won(x.amount));
-      row.innerHTML='<span><b>'+x.date+'</b> · '+(categoryIcons[x.category]||"📁")+" "+x.category+" · "+paymentLabel(x)+' · '+x.description+'</span><b>'+amountText+'</b>';
+      row.innerHTML='<span>'+x.date+' · '+(categoryIcons[x.category]||"📁")+" "+x.category+" · "+paymentLabel(x)+' · '+x.description+'</span><b>'+amountText+'</b>';
     }
     box.appendChild(row);
   }
