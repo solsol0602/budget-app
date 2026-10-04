@@ -79,8 +79,9 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
   </div>
   <div class="row">
     <div class="field"><label>통화</label><select id="currency"><option value="JPY">JPY · 엔</option><option value="KRW">KRW · 원</option></select></div>
-    <div class="field"><label>카테고리</label><div class="cat-select-row"><select id="category"></select><button id="categoryManageBtn" type="button" class="cat-manage">관리</button></div></div>
+    <div class="field"><label>결제수단</label><select id="paymentMethod"><option value="account">🏦 계좌</option><option value="cash">💵 현금</option></select></div>
   </div>
+  <div class="field"><label>카테고리</label><div class="cat-select-row"><select id="category"></select><button id="categoryManageBtn" type="button" class="cat-manage">관리</button></div></div>
   <div class="field"><label>내용</label><input id="description" placeholder="예: 편의점, 교통비, 월급"></div>
   <button id="saveBtn" class="primary">거래 저장</button>
 </section>
@@ -315,7 +316,9 @@ async function save(){
   if(!amount||amount<=0){alert("금액을 입력해줘.");return}
   if(!description){alert("내용을 입력해줘.");return}
   setSync("저장 중…");
-  const row={user_id:user.id,date:$("date").value,description,amount,currency:$("currency").value,category:txType==="cash_withdrawal"?"현금":$("category").value,type:txType};
+  const currency=$("currency").value;
+  const paymentMethod=txType==="cash_withdrawal"?"account":$("paymentMethod").value;
+  const row={user_id:user.id,date:$("date").value,description,amount,currency,category:txType==="cash_withdrawal"?"현금":$("category").value,type:txType,payment_method:paymentMethod,fx_rate_krw_per_jpy:currency==="JPY"?rate:null};
   const r=await sb.from("transactions").insert(row).select().single();
   if(r.error){alert("저장 실패: "+r.error.message);setSync("저장 실패");return}
   transactions.unshift(r.data);render();$("amount").value="";$("description").value="";setSync("동기화 완료");
@@ -333,14 +336,17 @@ function setType(t){
   $("withdrawBtn").className=t==="cash_withdrawal"?"active":"";
   $("category").disabled=t==="cash_withdrawal";
   $("categoryManageBtn").disabled=t==="cash_withdrawal";
+  $("paymentMethod").disabled=t==="cash_withdrawal";
   if(t==="cash_withdrawal"){
     if(!categories.includes("현금")){categories.push("현금")}
     categoryIcons.현금=categoryIcons.현금||"💵";
     populateCategories("현금");
     $("category").disabled=true;
+    $("paymentMethod").value="account";
   }
 }
 $("expenseBtn").onclick=()=>setType("expense");$("incomeBtn").onclick=()=>setType("income");$("withdrawBtn").onclick=()=>setType("cash_withdrawal");$("saveBtn").onclick=save;
+$("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account"};
 
 let rate=9.0;
 async function getRate(){
@@ -367,7 +373,9 @@ async function getRate(){
 }
 $("refreshRate").onclick=getRate;
 
-function krwValue(x){return x.currency==="KRW"?Number(x.amount):Number(x.amount)*rate}
+function transactionRate(x){const v=Number(x.fx_rate_krw_per_jpy);return Number.isFinite(v)&&v>0?v:rate}
+function krwValue(x){return x.currency==="KRW"?Number(x.amount):Number(x.amount)*transactionRate(x)}
+function paymentLabel(x){return x.type==="cash_withdrawal"?"🏦 계좌":(x.payment_method==="cash"?"💵 현금":"🏦 계좌")}
 let calendarMonth=new Date().getMonth();
 let calendarYear=new Date().getFullYear();
 let selectedCalendarDate=today;
@@ -417,7 +425,7 @@ function renderSelectedDay(){
     const isCash=x.type==="cash_withdrawal";const sign=x.type==="income"?"+":"-";const cls=x.type==="income"?"green":"red";
     div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px"><div style="min-width:0;display:flex;align-items:center;gap:7px"><div class="cal-desc" style="font-weight:650"></div><div class="meta" style="margin-top:0"></div></div><div style="display:flex;align-items:center;flex:none"><div class="amt '+cls+'"></div><button class="cal-delete">삭제</button></div></div>';
     div.querySelector(".cal-desc").textContent=isCash?"🏧 "+x.description:x.description;
-    div.querySelector(".meta").textContent=isCash?"현금 인출":(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+resolveCategory(x.category);
+    div.querySelector(".meta").textContent=isCash?"현금 인출 · "+paymentLabel(x):(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+resolveCategory(x.category)+" · "+paymentLabel(x);
     div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount)));
     div.querySelector(".cal-delete").onclick=()=>del(x.id);
     box.appendChild(div);
@@ -436,11 +444,16 @@ function render(){
       continue;
     }
     const sign=x.type==="income"?1:-1;
-    if(x.currency==="KRW")krw+=sign*Number(x.amount);else jpy+=sign*Number(x.amount);
+    const amount=Number(x.amount);
+    if(x.payment_method==="cash"){
+      if(x.currency==="KRW")cashKrw+=sign*amount;else cashJpy+=sign*amount;
+    }else{
+      if(x.currency==="KRW")krw+=sign*amount;else jpy+=sign*amount;
+    }
     if(x.date?.startsWith(ym)){const v=krwValue(x);if(sign>0)monthIn+=v;else monthOut+=v}
   }
   $("krwBalance").textContent=won(krw);$("jpyBalance").textContent=yen(jpy);
-  $("cashBalance").textContent=cashKrw?(won(cashKrw)+(cashJpy?" + "+yen(cashJpy):"")):yen(cashJpy);
+  $("cashBalance").textContent=cashKrw?(won(cashKrw)+(cashJpy?" + "+yen(cashJpy):"")):(cashJpy?yen(cashJpy):"¥0");
   $("total").textContent=won(krw+jpy*rate+cashKrw+cashJpy*rate);
   $("monthSummary").textContent="수입 "+won(monthIn)+" · 지출 "+won(monthOut);
   const box=$("transactions");box.innerHTML="";
@@ -450,7 +463,7 @@ function render(){
     const div=document.createElement("div");div.className="tx";
     div.innerHTML='<div><div class="desc"></div><div class="meta"></div><button class="del">삭제</button></div><div class="amt '+cls+'"></div>';
     div.querySelector(".desc").textContent=isCash?"🏧 "+x.description:x.description;
-    div.querySelector(".meta").textContent=isCash?"현금 인출 · "+x.date:(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+x.date+" · "+resolveCategory(x.category);
+    div.querySelector(".meta").textContent=isCash?"현금 인출 · "+x.date:(categoryIcons[resolveCategory(x.category)]?.startsWith("data:image/")?"🖼️":(categoryIcons[resolveCategory(x.category)]||"📁"))+" "+x.date+" · "+resolveCategory(x.category)+" · "+paymentLabel(x)+(x.currency==="JPY"?" · 당시 "+(transactionRate(x)*100).toFixed(1)+"원/100엔":"");
     div.querySelector(".amt").textContent=isCash?(x.currency==="JPY"?yen(x.amount):won(x.amount)):(sign+(x.currency==="JPY"?yen(x.amount):won(x.amount)));
     div.querySelector(".del").onclick=()=>del(x.id);box.appendChild(div);
   }
