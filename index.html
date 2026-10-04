@@ -353,7 +353,7 @@ function parseBulkLine(line,fallbackDate=null){
   let text=String(line||"").trim().replace(/^[-•*]\s*/,"");
   if(!text)return null;
 
-  let m=text.match(/^(?:\[\s*)?(\d{4}[\.\/]\d{1,2}[\.\/]\d{1,2}|\d{1,2}[\.\/]\d{1,2}|\d{1,2}월\s*\d{1,2}일)(?:\s*\])?\s*/);
+  let m=text.match(/^(?:\[\s*)?(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)(?:\s*\])?\s*/);
   let date=m?normalizeDateInput(m[1]):normalizeDateInput(fallbackDate||"");
   let rest=m?text.slice(m[0].length):text;
   if(!date)return {error:"날짜를 찾지 못함",raw:text};
