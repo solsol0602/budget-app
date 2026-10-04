@@ -166,10 +166,10 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 <div id="accountModal" class="modal">
   <div class="modal-card">
     <div class="modal-head"><b>계좌 관리</b><button id="accountCloseBtn" class="modal-close" type="button">✕</button></div>
-    <div class="notice" style="margin:-2px 0 12px">네가 실제로 쓰는 돈통을 원하는 이름으로 만들어두면 출금 계좌·입금 계좌에서 바로 선택할 수 있어. 숨김으로 해두면 계좌는 유지되지만 거래 입력창에서는 안 보여.</div>
+    <div class="notice" style="margin:-2px 0 12px">네가 실제로 쓰는 돈통을 원하는 이름으로 만들어두면 출금 계좌·입금 계좌에서 바로 선택할 수 있어. 출금 숨김과 입금 숨김은 서로 독립이라 한쪽만 숨길 수도 있어.</div>
     <div class="cat-add"><input id="newAccount" maxlength="20" placeholder="예: 유초은행, 토스"><select id="newAccountCurrency" style="height:40px;width:120px"><option value="JPY">JPY</option><option value="KRW">KRW</option></select><button id="addAccountBtn" type="button">추가</button></div>
     <div id="accountList" class="account-list"></div>
-    <div class="cat-note">예: 토스뱅크(KRW), 하나은행 트래블월렛(JPY), 데이트 통장(KRW), ゆうちょ銀行(JPY)처럼 자유롭게 만들어서 사용할 수 있어. 이름 변경도 가능해. 숨김 계좌는 잔액·거래에는 남아 있고 출금/입금 선택창에서만 숨겨져.</div>
+    <div class="cat-note">예: 토스뱅크(KRW), 하나은행 트래블월렛(JPY), 데이트 통장(KRW), ゆうちょ銀行(JPY)처럼 자유롭게 만들어서 사용할 수 있어. 이름 변경도 가능해. 숨긴 계좌도 잔액·거래에는 그대로 남아 있어.</div>
   </div>
 </div>
 <div id="categoryModal" class="modal">
@@ -293,12 +293,12 @@ function normalizeAccounts(list){
   const out=[];
   for(const base of DEFAULT_ACCOUNTS){
     const found=(Array.isArray(list)?list:[]).find(x=>x?.id===base.id);
-    out.push(found?{...base,...found,initial_balance:Number(found.initial_balance)||0,hidden:Boolean(found.hidden),system:true}:{...base,hidden:false});
+    out.push(found?{...base,...found,initial_balance:Number(found.initial_balance)||0,hide_from_source:found.hide_from_source!==undefined?Boolean(found.hide_from_source):Boolean(found.hidden),hide_from_destination:found.hide_from_destination!==undefined?Boolean(found.hide_from_destination):false,system:true}:{...base,hide_from_source:false,hide_from_destination:false});
   }
   for(const x of Array.isArray(list)?list:[]){
     const id=String(x?.id||"").trim(),name=String(x?.name||"").trim(),currency=x?.currency;
     if(!id||!name||out.some(a=>a.id===id))continue;
-    out.push({id,name,currency:currency==="KRW"?"KRW":"JPY",kind:x.kind==="cash"?"cash":"account",initial_balance:Number(x.initial_balance)||0,hidden:Boolean(x.hidden),system:false});
+    out.push({id,name,currency:currency==="KRW"?"KRW":"JPY",kind:x.kind==="cash"?"cash":"account",initial_balance:Number(x.initial_balance)||0,hide_from_source:x.hide_from_source!==undefined?Boolean(x.hide_from_source):Boolean(x.hidden),hide_from_destination:x.hide_from_destination!==undefined?Boolean(x.hide_from_destination):false,system:false});
   }
   return out;
 }
@@ -398,8 +398,8 @@ function populateAccountSelects(){
   const keepDestId=editingTx?.transfer_to_account_id||"";
   const sourceKind=(isTransfer||isWithdraw)?"account":(payment==="cash"?"cash":"account");
   const sourceOptions=isTransfer
-    ?accounts.filter(a=>a.kind==="account"&&(!a.hidden||a.id===keepSourceId))
-    :accounts.filter(a=>a.currency===currency&&a.kind===sourceKind&&(!a.hidden||a.id===keepSourceId));
+    ?accounts.filter(a=>a.kind==="account"&&(!a.hide_from_source||a.id===keepSourceId))
+    :accounts.filter(a=>a.currency===currency&&a.kind===sourceKind&&(!a.hide_from_source||a.id===keepSourceId));
 
   main.innerHTML="";
   for(const a of sourceOptions){
@@ -417,8 +417,8 @@ function populateAccountSelects(){
   to.innerHTML="";
   const selectedSource=getAccount(main.value);
   const destOptions=isTransfer
-    ?accounts.filter(a=>a.kind==="account"&&a.id!==main.value&&(!a.hidden||a.id===keepDestId))
-    :accounts.filter(a=>a.currency===currency&&a.kind==="account"&&(!a.hidden||a.id===keepDestId));
+    ?accounts.filter(a=>a.kind==="account"&&a.id!==main.value&&(!a.hide_from_destination||a.id===keepDestId))
+    :accounts.filter(a=>a.currency===currency&&a.kind==="account"&&(!a.hide_from_destination||a.id===keepDestId));
 
   for(const a of destOptions){
     const opt=document.createElement("option");
@@ -449,15 +449,21 @@ function renderAccountManager(){
   box.innerHTML="";
   for(const a of accounts){
     const row=document.createElement("div");row.className="account-row";
-    row.innerHTML='<div class="account-main"><div class="account-badge"></div><div><div class="account-name"></div><div class="account-meta"></div></div></div><div class="account-actions"><button type="button" class="account-start">시작 잔액</button><button type="button" class="account-rename">이름 변경</button><button type="button" class="account-hide"></button><button type="button" class="account-delete">삭제</button></div>';
+    row.innerHTML='<div class="account-main"><div class="account-badge"></div><div><div class="account-name"></div><div class="account-meta"></div></div></div><div class="account-actions"><button type="button" class="account-start">시작 잔액</button><button type="button" class="account-rename">이름 변경</button><button type="button" class="account-source-hide"></button><button type="button" class="account-dest-hide"></button><button type="button" class="account-delete">삭제</button></div>';
     row.querySelector(".account-badge").textContent=a.kind==="cash"?"💵":"🏦";
     row.querySelector(".account-name").textContent=a.name;
-    row.querySelector(".account-meta").textContent=a.currency+" · "+(a.kind==="cash"?"현금":"계좌")+" · 시작 "+(a.currency==="JPY"?yen(a.initial_balance||0):won(a.initial_balance||0))+(a.hidden?" · 🔒 숨김":"");
+    const flags=[];
+    if(a.hide_from_source)flags.push("출금 숨김");
+    if(a.hide_from_destination)flags.push("입금 숨김");
+    row.querySelector(".account-meta").textContent=a.currency+" · "+(a.kind==="cash"?"현금":"계좌")+" · 시작 "+(a.currency==="JPY"?yen(a.initial_balance||0):won(a.initial_balance||0))+(flags.length?" · 🔒 "+flags.join(" · "):"");
     row.querySelector(".account-start").onclick=()=>setAccountStartingBalance(a.id);
     row.querySelector(".account-rename").onclick=()=>renameAccount(a.id);
-    const hide=row.querySelector(".account-hide");
-    hide.textContent=a.hidden?"표시":"숨김";
-    hide.onclick=()=>toggleAccountHidden(a.id);
+    const sourceHide=row.querySelector(".account-source-hide");
+    sourceHide.textContent=a.hide_from_source?"출금 표시":"출금 숨김";
+    sourceHide.onclick=()=>toggleAccountVisibility(a.id,"source");
+    const destHide=row.querySelector(".account-dest-hide");
+    destHide.textContent=a.hide_from_destination?"입금 표시":"입금 숨김";
+    destHide.onclick=()=>toggleAccountVisibility(a.id,"destination");
     const del=row.querySelector(".account-delete");
     if(a.system){del.disabled=true;del.style.opacity=".45";del.textContent="기본"}
     else del.onclick=()=>deleteAccount(a.id);
@@ -468,7 +474,7 @@ async function addAccount(){
   const name=$("newAccount").value.trim(),currency=$("newAccountCurrency").value;
   if(!name)return;
   if(accounts.some(a=>a.name===name&&a.currency===currency)){alert("같은 이름의 계좌가 이미 있어.");return}
-  accounts.push({id:"acct_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),name,currency,kind:"account",hidden:false,system:false});
+  accounts.push({id:"acct_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),name,currency,kind:"account",hide_from_source:false,hide_from_destination:false,system:false});
   if(await saveAccountSettings())$("newAccount").value="";
 }
 async function setAccountStartingBalance(id){
@@ -488,15 +494,11 @@ async function renameAccount(id){
   if(accounts.some(x=>x.id!==id&&x.name===next&&x.currency===a.currency)){alert("같은 이름의 계좌가 이미 있어.");return}
   a.name=next;await saveAccountSettings();
 }
-async function toggleAccountHidden(id){
+async function toggleAccountVisibility(id,kind){
   const a=getAccount(id);if(!a)return;
-  a.hidden=!a.hidden;
-  if(await saveAccountSettings()){
-    populateAccountSelects();
-    if(a.hidden && (a.id===$("accountSelect").value || a.id===$("transferToSelect").value)){
-      populateAccountSelects();
-    }
-  }
+  if(kind==="source")a.hide_from_source=!a.hide_from_source;
+  else a.hide_from_destination=!a.hide_from_destination;
+  await saveAccountSettings();
 }
 async function deleteAccount(id){
   const a=getAccount(id);if(!a||a.system)return;
@@ -1296,7 +1298,7 @@ populateAccountSelects();
 applyEntryDefaults("expense");
 getRate();
 init();
-navigator.serviceWorker?.register("./sw.js?v=35").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=36").catch(()=>{});
 </script>
 </body>
 </html>
