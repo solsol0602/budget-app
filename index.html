@@ -92,7 +92,7 @@ input:focus,select:focus{border-color:#9ca3af}.type{display:grid;grid-template-c
 
 <section class="card">
   <div class="label" style="margin-bottom:6px">거래 일괄 입력</div>
-  <p class="bulk-help">한 줄에 하나씩 붙여넣어줘. 예: <b>10/1 세븐일레븐 1,280엔 현금</b><br>카테고리는 내용으로 자동 추정하고, JPY 거래는 저장 시점의 환율을 기록해.</p>
+  <p class="bulk-help">네가 정리해둔 형식 그대로 붙여넣어도 돼. <b>[10월 1일 지출 내역] → ■ 쇼핑 → - 난: 216엔 (1,855원)</b>처럼 제목/소계가 있어도 자동으로 분류해서 읽어. 또는 <b>10/1 세븐일레븐 1,280엔 현금</b>처럼 한 줄씩 넣어도 돼.</p>
   <textarea id="bulkInput" class="bulk-textarea" placeholder="10/1 세븐일레븐 1,280엔 현금
 10/1 후치노베→신주쿠 전철 430엔
 10/2 유니클로 3,990엔
@@ -368,6 +368,47 @@ function parseBulkLine(line){
   const fx=(jpy&&krw)?(krw/jpy): (jpy?rate:null);
   return {date,description:clean||"일괄 입력",amount,currency:isKrw?"KRW":"JPY",category,type:isWithdrawal?"cash_withdrawal":(isIncome?"income":"expense"),payment_method:(isWithdrawal||isIncome)?"account":payment,fx_rate_krw_per_jpy:fx};
 }
+function groupedHeadingCategory(title){
+  const t=title.trim();
+  if(/현금\s*인출|ATM/i.test(t))return "현금";
+  if(/생활용품/.test(t))return "생활";
+  if(/쇼핑/.test(t))return "쇼핑";
+  if(/외식|식비|음식/.test(t))return "식비";
+  if(/교통/.test(t))return "교통";
+  if(/통신/.test(t))return "통신";
+  if(/주거/.test(t))return "주거";
+  if(/여행/.test(t))return "여행";
+  if(/생활/.test(t))return "생활";
+  if(/기타/.test(t))return "기타";
+  return null;
+}
+function parseGroupedBulkText(raw){
+  let currentDate=null,currentCategory=null;
+  const out=[];
+  for(const line of raw.split(/\r?\n/)){
+    const text=line.trim();
+    if(!text)continue;
+    if(/^[-─_]+$/.test(text) || /소계|실제 구매 지출 합계|현금 인출 포함 총합계|100만원 환전|100만 원 환전/.test(text))continue;
+    const dateMatch=text.match(/(\d{4}[\.\/]\d{1,2}[\.\/]\d{1,2}|\d{1,2}[\.\/]\d{1,2}|\d{1,2}월\s*\d{1,2}일)/);
+    if(dateMatch){
+      currentDate=normalizeDateInput(dateMatch[1]);
+      if(/^\s*\[.*\]\s*$/.test(text))continue;
+      if(/^(?:\[)?\s*\d/.test(text) && !/^\s*[-•]/.test(text))continue;
+    }
+    const heading=text.match(/^■\s*(.+)$/);
+    if(heading){currentCategory=groupedHeadingCategory(heading[1]);continue}
+    if(!/^[-•]/.test(text))continue;
+    if(!currentDate){out.push({error:"날짜를 찾지 못함",raw:text});continue}
+    const parsed=parseBulkLine(currentDate+" "+text);
+    if(!parsed)continue;
+    if(!parsed.error && currentCategory){
+      if(parsed.type==="cash_withdrawal")parsed.category="현금";
+      else parsed.category=currentCategory;
+    }
+    out.push(parsed);
+  }
+  return out;
+}
 function renderBulkPreview(){
   const box=$("bulkPreview");box.innerHTML="";
   if(!bulkDraft.length){$("bulkSaveBtn").style.display="none";return}
@@ -377,15 +418,18 @@ function renderBulkPreview(){
     if(x.error)row.innerHTML='<span>'+x.raw+'</span><span>'+x.error+'</span>';
     else{
       const sign=x.type==="income"?"+":"-";
-      row.innerHTML='<span>'+x.date+" · "+(categoryIcons[x.category]||"📁")+" "+x.category+" · "+paymentLabel(x)+' · '+x.description+'</span><b>'+sign+(x.currency==="JPY"?yen(x.amount):won(x.amount))+'</b>';
+      const amountText=x.type==="cash_withdrawal"?"🏧 "+(x.currency==="JPY"?yen(x.amount):won(x.amount)):sign+(x.currency==="JPY"?yen(x.amount):won(x.amount));
+      row.innerHTML='<span>'+x.date+" · "+(categoryIcons[x.category]||"📁")+" "+x.category+" · "+paymentLabel(x)+' · '+x.description+'</span><b>'+amountText+'</b>';
     }
     box.appendChild(row);
   }
   $("bulkSaveBtn").style.display=ok.length&&ok.length===bulkDraft.length?"block":"none";
 }
 function analyzeBulk(){
-  const lines=$("bulkInput").value.split(/\r?\n/).filter(x=>x.trim());
-  bulkDraft=lines.map(parseBulkLine).filter(Boolean);
+  const raw=$("bulkInput").value.trim();
+  if(!raw){bulkDraft=[];renderBulkPreview();return}
+  const grouped=raw.split(/\r?\n/).some(x=>/^\s*\[.*\]\s*$/.test(x)||/^\s*■/.test(x));
+  bulkDraft=grouped?parseGroupedBulkText(raw):raw.split(/\r?\n/).map(parseBulkLine).filter(Boolean);
   renderBulkPreview();
 }
 async function saveBulk(){
