@@ -399,7 +399,7 @@ function renderCalendar(){
     el.innerHTML='<div class="day-num"></div>'+(inc?'<div class="day-in"></div>':"")+(out?'<div class="day-out"></div>':"")+(cash?'<div class="day-cash"></div>':"");
     el.querySelector(".day-num").textContent=d;
     if(inc)el.querySelector(".day-in").textContent="+"+shortKrw(inc);
-    if(out)el.querySelector(".day-out").textContent="-"+shortKrw(out);if(cash)el.querySelector(".day-cash").textContent="🏧 "+shortKrw(cash);
+    if(out)el.querySelector(".day-out").textContent="-"+shortKrw(out);if(cash){const cashTx=dayTx.find(x=>x.type==="cash_withdrawal");el.querySelector(".day-cash").textContent="🏧 "+(cashTx?.currency==="JPY"?yen(cashTx.amount):won(cashTx?.amount||0));}
     el.onclick=()=>{selectedCalendarDate=key;calendarYear=y;calendarMonth=m;renderCalendar()};
     grid.appendChild(el);
   }
