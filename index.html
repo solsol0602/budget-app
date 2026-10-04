@@ -790,11 +790,14 @@ function updateTransferAutoAmount(){
     $("transferRateDisplay").value="같은 통화 · 1:1";
     return;
   }
+  const existing=editingId?transactions.find(t=>t.id===editingId):null;
+  const editRate=Number(existing?.transfer_fx_rate);
+  const fx=Number.isFinite(editRate)&&editRate>0?editRate:rate;
   $("transferToAmount").disabled=true;
-  $("transferRateDisplay").value="100 JPY = "+won(rate*100);
+  $("transferRateDisplay").value="100 JPY = "+won(fx*100);
   const incoming=source.currency==="JPY"&&dest.currency==="KRW"
-    ?amount*rate
-    :(source.currency==="KRW"&&dest.currency==="JPY"?amount/rate:amount);
+    ?amount*fx
+    :(source.currency==="KRW"&&dest.currency==="JPY"?amount/fx:amount);
   $("transferToAmount").value=Number(incoming.toFixed(2));
 }
 
@@ -811,6 +814,7 @@ async function save(){
   const sourceId=selectedSource.id;
   const destId=$("transferToSelect").value||"";
   const paymentMethod=txType==="cash_withdrawal"?"account":(txType==="transfer"?"account":$("paymentMethod").value);
+  const existing=editingId?transactions.find(t=>t.id===editingId):null;
 
   if(txType==="transfer"&&(!destId||destId===sourceId)){alert("서로 다른 계좌를 선택해줘.");setSync("입력 필요");return}
 
@@ -820,8 +824,9 @@ async function save(){
     if(!destAcct){alert("입금 계좌를 선택해줘.");setSync("입력 필요");return}
     if(destAcct.currency===currency)transferToAmount=amount;
     else{
-      transferFxRate=rate;
-      transferToAmount=currency==="JPY"&&destAcct.currency==="KRW"?amount*rate:(currency==="KRW"&&destAcct.currency==="JPY"?amount/rate:amount);
+      const oldFx=Number(existing?.transfer_fx_rate);
+      transferFxRate=Number.isFinite(oldFx)&&oldFx>0?oldFx:rate;
+      transferToAmount=currency==="JPY"&&destAcct.currency==="KRW"?amount*transferFxRate:(currency==="KRW"&&destAcct.currency==="JPY"?amount/transferFxRate:amount);
     }
   }
 
@@ -833,7 +838,7 @@ async function save(){
     transfer_to_amount:transferToAmount,
     transfer_to_currency:txType==="transfer"?destAcct?.currency:null,
     transfer_fx_rate:transferFxRate,
-    fx_rate_krw_per_jpy:currency==="JPY"?rate:null
+    fx_rate_krw_per_jpy:currency==="JPY"?(Number(existing?.fx_rate_krw_per_jpy)>0?Number(existing.fx_rate_krw_per_jpy):rate):null
   };
 
   let r;
