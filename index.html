@@ -173,7 +173,7 @@ input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
 </section>
 
 <section class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b>거래 내역</b><div class="tx-tools"><button id="backupBtn" class="secondary">JSON 백업</button><button id="restoreBtn" class="secondary">JSON 복원</button><button id="resetTransactionsBtn" class="secondary">거래 초기화</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none"></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b>거래 내역</b><div class="tx-tools"><button id="backupBtn" class="secondary">거래 백업</button><button id="fullBackupBtn" class="secondary">전체 백업</button><button id="restoreBtn" class="secondary">JSON 복원</button><button id="resetTransactionsBtn" class="secondary">거래 초기화</button><input id="restoreFile" type="file" accept=".json,application/json" style="display:none"></div></div>
   <div class="filter-grid">
     <div class="filter-wide"><input id="txSearch" placeholder="내용 검색 · 예: 라멘, 유니클로"></div>
     <select id="txMonthFilter"><option value="all">모든 월</option></select>
@@ -1464,56 +1464,71 @@ async function restoreFromBackupFile(file){
   try{
     const textData=await file.text();
     const parsed=JSON.parse(textData);
-    const rows=Array.isArray(parsed)?parsed:parsed?.transactions;
-    if(!Array.isArray(rows)||!rows.length)throw new Error("transactions 배열이 없는 백업 파일이야.");
+    const isFull=parsed?.backup_type==="hanil_budget_full_v1";
+    const rows=Array.isArray(parsed)?parsed:(Array.isArray(parsed?.transactions)?parsed.transactions:null);
+    if(!rows)throw new Error("거래 배열이 없는 백업 파일이야.");
+
     const allowedTypes=["income","expense","cash_withdrawal","transfer","adjustment"];
     const allowedCurrencies=["KRW","JPY"];
-    const clean=rows.map((x,i)=>{
+    rows.forEach((x,i)=>{
       if(!x||typeof x!=="object")throw new Error((i+1)+"번째 거래 형식이 올바르지 않아.");
       const amount=Number(x.amount);
-      if(!x.date||!/^\d{4}-\d{2}-\d{2}$/.test(String(x.date)))throw new Error((i+1)+"번째 거래의 날짜가 올바르지 않아.");
+      if(!x.date||!/^d{4}-d{2}-d{2}$/.test(String(x.date)))throw new Error((i+1)+"번째 거래의 날짜가 올바르지 않아.");
       if(!Number.isFinite(amount)||amount<=0)throw new Error((i+1)+"번째 거래의 금액이 올바르지 않아.");
       if(!allowedCurrencies.includes(x.currency))throw new Error((i+1)+"번째 거래의 통화가 올바르지 않아.");
       if(!allowedTypes.includes(x.type))throw new Error((i+1)+"번째 거래의 유형이 올바르지 않아.");
       if(x.type==="adjustment"&&!["increase","decrease"].includes(x.adjustment_sign))throw new Error((i+1)+"번째 잔액 조정 정보가 올바르지 않아.");
-      return {
-        id:x.id||undefined,
-        user_id:user.id,
-        date:String(x.date),
-        description:String(x.description||"백업 복원"),
-        amount,
-        currency:x.currency,
-        category:String(x.category||"기타"),
-        type:x.type,
+    });
+
+    let fullSettings=null;
+    if(isFull){
+      if(!parsed.account_settings||!Array.isArray(parsed.account_settings.accounts))throw new Error("전체 백업의 계좌 설정이 올바르지 않아.");
+      if(!parsed.category_settings||!Array.isArray(parsed.category_settings.categories))throw new Error("전체 백업의 카테고리 설정이 올바르지 않아.");
+      fullSettings={account_settings:parsed.account_settings,category_settings:parsed.category_settings};
+    }
+
+    const scope=isFull?"거래 + 계좌 + 카테고리 설정":"거래만";
+    if(!confirm("백업 파일을 확인했어.\n\n복원 범위: "+scope+"\n거래 "+rows.length+"건\n\n현재 거래 내역은 백업 내용으로 교체돼."+(isFull?"\n계좌/카테고리 설정도 백업 내용으로 교체돼.":"\n계좌/카테고리 설정은 유지돼.")))return;
+    if(prompt("복원을 계속하려면 ‘복원’을 입력해줘.","")!=="복원"){alert("복원이 취소됐어.");return}
+
+    setSync("백업 복원 중…");
+    const del=await sb.from("transactions").delete().eq("user_id",user.id);
+    if(del.error)throw del.error;
+
+    if(rows.length){
+      const insertRows=rows.map(x=>({
+        id:x.id||undefined,user_id:user.id,date:String(x.date),
+        description:String(x.description||"백업 복원"),amount:Number(x.amount),currency:x.currency,
+        category:String(x.category||"기타"),type:x.type,
         payment_method:x.payment_method==="cash"?"cash":"account",
-        account_id:x.account_id||null,
-        transfer_to_account_id:x.transfer_to_account_id||null,
+        account_id:x.account_id||null,transfer_to_account_id:x.transfer_to_account_id||null,
         transfer_to_amount:Number(x.transfer_to_amount)>0?Number(x.transfer_to_amount):null,
         transfer_to_currency:x.transfer_to_currency==="KRW"||x.transfer_to_currency==="JPY"?x.transfer_to_currency:null,
         transfer_fx_rate:Number(x.transfer_fx_rate)>0?Number(x.transfer_fx_rate):null,
         fx_rate_krw_per_jpy:Number(x.fx_rate_krw_per_jpy)>0?Number(x.fx_rate_krw_per_jpy):null,
         adjustment_sign:x.adjustment_sign==="increase"||x.adjustment_sign==="decrease"?x.adjustment_sign:null
-      };
-    });
-    const hasIds=clean.every(x=>x.id);
-    const idMessage=hasIds?"기존 거래 ID도 그대로 복원돼.":"일부 거래 ID가 없어 새 ID로 복원돼.";
-    if(!confirm("백업 파일에서 "+clean.length+"건을 확인했어.\n\n현재 거래 내역은 모두 지워지고 백업 내용으로 교체돼.\n"+idMessage+"\n\n계좌/카테고리 설정은 유지돼."))return;
-    const typed=prompt("복원을 계속하려면 ‘복원’을 입력해줘.","");
-    if(typed!=="복원"){alert("복원이 취소됐어.");return}
-    setSync("백업 복원 중…");
-    let r=await sb.from("transactions").delete().eq("user_id",user.id);
-    if(r.error)throw r.error;
-    const insertRows=clean.map(({id,...x})=>hasIds?{id,...x}:x);
-    r=await sb.from("transactions").insert(insertRows).select();
-    if(r.error)throw r.error;
-    transactions=r.data||[];
-    resetTransactionForm();render();setSync("복원 완료");
-    $("restoreFile").value="";
+      }));
+      const ins=await sb.from("transactions").insert(insertRows).select();
+      if(ins.error)throw ins.error;
+      transactions=ins.data||[];
+    }else{
+      transactions=[];
+    }
+
+    if(fullSettings){
+      const meta=await sb.auth.updateUser({data:fullSettings});
+      if(meta.error)throw meta.error;
+      if(meta.data?.user)user=meta.data.user;
+      await loadCategories();
+      await loadAccounts();
+    }
+
+    resetTransactionForm();render();setSync("복원 완료");$("restoreFile").value="";
     alert("백업 복원이 완료됐어. "+transactions.length+"건을 복원했어.");
-  }catch(e){
-    console.error("backup restore failed:",e);
+  }catch(err){
+    console.error("backup restore failed:",err);
     setSync("복원 실패");
-    alert("백업 복원 실패: "+String(e?.message||e));
+    alert("백업 복원 실패: "+String(err?.message||err));
   }
 }
 $("restoreBtn").onclick=()=>$( "restoreFile" ).click();
@@ -1522,8 +1537,19 @@ $("restoreFile").onchange=e=>{
   if(file)restoreFromBackupFile(file);
 };
 $("backupBtn").onclick=()=>{
-  const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),transactions},null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hanil-budget-backup.json";a.click();URL.revokeObjectURL(a.href)
+  const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),backup_type:"hanil_budget_transactions_v1",transactions},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hanil-budget-transactions-backup.json";a.click();URL.revokeObjectURL(a.href)
+};
+$("fullBackupBtn").onclick=()=>{
+  const payload={
+    exported_at:new Date().toISOString(),
+    backup_type:"hanil_budget_full_v1",
+    transactions,
+    account_settings:user?.user_metadata?.account_settings||{version:1,accounts},
+    category_settings:user?.user_metadata?.category_settings||{version:2,categories,aliases:categoryAliases,icons:categoryIcons}
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hanil-budget-full-backup.json";a.click();URL.revokeObjectURL(a.href)
 };
 window.addEventListener("focus",()=>{if(user)loadAll()});
 setInterval(()=>{if(user)loadAll()},15000);
@@ -1533,7 +1559,7 @@ updateAmountSuffix();
 applyEntryDefaults("expense");
 getRate();
 init();
-navigator.serviceWorker?.register("./sw.js?v=43").catch(()=>{});
+navigator.serviceWorker?.register("./sw.js?v=45").catch(()=>{});
 </script>
 </body>
 </html>
