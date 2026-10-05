@@ -1469,24 +1469,8 @@ function render(){
   const ym=today.slice(0,7);
 
   for(const x of transactions){
-    const amount=Number(x.amount)||0;
-    if(x.type==="transfer"){
-      const from=accountIdForTransaction(x),to=x.transfer_to_account_id;
-      if(from&&balances[from]!==undefined)balances[from]-=amount;
-      const incoming=Number(x.transfer_to_amount)>0?Number(x.transfer_to_amount):amount;
-      if(to&&balances[to]!==undefined)balances[to]+=incoming;
-      continue;
-    }
-    if(x.type==="cash_withdrawal"){
-      const from=accountIdForTransaction(x),to=cashAccountId(x.currency);
-      if(from&&balances[from]!==undefined)balances[from]-=amount;
-      if(balances[to]!==undefined)balances[to]+=amount;
-      continue;
-    }
-    if(x.type==="adjustment")continue;
+    if(x.type==="transfer"||x.type==="cash_withdrawal"||x.type==="adjustment")continue;
     const sign=x.type==="income"?1:-1;
-    const id=accountIdForTransaction(x);
-    if(id&&balances[id]!==undefined)balances[id]+=sign*amount;
     if(x.date?.startsWith(ym)){
       const v=krwValue(x);
       if(sign>0)monthIn+=v;else monthOut+=v;
