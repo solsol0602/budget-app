@@ -867,7 +867,7 @@ function parseFlexibleBulkText(raw,fallbackDate=null){
     const dateMatch=text.match(/(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)/);
     if(dateMatch){const d=normalizeDateInput(dateMatch[1]);if(d)currentDate=d}
     const remainder=dateMatch?text.slice(dateMatch.index+dateMatch[0].length).trim():text;
-    const heading=remainder.replace(/^[-•*■◆◇▶]\s*/,"").trim();
+    const heading=remainder.replace(/^[\[\]【】]/g,"").replace(/[\[\]【】]$/g,"").replace(/^[-•*■◆◇▶]\s*/,"").trim();
     if(dateMatch&&!remainder)continue;
     if(/(?:지출|수입)\s*내역\s*$/i.test(heading))continue;
     if(/^(?:소계|실제 구매 지출 합계|현금 인출 포함 총합계|합계|총합)/i.test(heading))continue;
