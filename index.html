@@ -115,7 +115,10 @@ input:focus,select:focus{border-color:#9ca3af;box-shadow:0 0 0 3px #1118270a}
     <div class="field" id="transferToField" style="display:none"><label>입금 계좌</label><div class="cat-select-row"><select id="transferToSelect"></select><button id="accountManageTransferBtn" type="button" class="cat-manage">관리</button></div></div>
   </div>
   <div class="row" id="transferAmountRow" style="display:none">
-    <div class="field"><label>받는 금액</label><input id="transferToAmount" class="money-input" type="text" inputmode="decimal" autocomplete="off" placeholder="자동 계산"></div>
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 6px 2px"><label style="margin:0">받는 금액</label><button id="transferAutoBtn" type="button" class="cat-manage" style="height:30px;padding:0 8px;font-size:10px">자동 계산</button></div>
+      <input id="transferToAmount" class="money-input" type="text" inputmode="decimal" autocomplete="off" placeholder="자동 계산">
+    </div>
     <div class="field"><label>적용 환율</label><input id="transferRateDisplay" type="text" value="현재 자동 환율" readonly></div>
   </div>
   <div class="field"><label>카테고리</label><div class="cat-select-row"><select id="category"></select><button id="categoryManageBtn" type="button" class="cat-manage">관리</button></div></div>
@@ -233,7 +236,7 @@ const DEFAULT_ACCOUNTS=[
 const $=id=>document.getElementById(id);
 const now=new Date();
 const today=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
-let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null, accounts=[...DEFAULT_ACCOUNTS], editingId=null, filtersReady=false, statsMonthKey=today.slice(0,7), statsReady=false;
+let sb=null, user=null, transactions=[], mode="login", txType="expense", categories=[...DEFAULT_CATEGORIES], categoryAliases={}, categoryIcons={...DEFAULT_CATEGORY_ICONS}, pendingPhotoCategory=null, accounts=[...DEFAULT_ACCOUNTS], editingId=null, filtersReady=false, statsMonthKey=today.slice(0,7), statsReady=false, transferAmountManual=false;
 $("date").value=today;
 
 function configured(){return !SUPABASE_URL.startsWith("YOUR_")&&!SUPABASE_ANON_KEY.startsWith("YOUR_")}
@@ -748,22 +751,21 @@ function guessCategory(text,isIncome){
   if(/빨대|수세미|세제|샴푸|생활/.test(t))return "생활";
   return "기타";
 }
-function parseBulkLine(line,fallbackDate=null){
+function parseBulkLine(line,fallbackDate=null,currentCategory=null){
   let text=String(line||"").trim().replace(/^[-•*]\s*/,"");
   if(!text)return null;
-
-  let m=text.match(/^(?:\[\s*)?(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)(?:\s*\])?\s*/);
-  let date=m?normalizeDateInput(m[1]):normalizeDateInput(fallbackDate||"");
-  let rest=m?text.slice(m[0].length):text;
+  const dateMatch=text.match(/^(?:\[\s*)?(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)(?:\s*\])?\s*/);
+  const date=dateMatch?normalizeDateInput(dateMatch[1]):normalizeDateInput(fallbackDate||"");
+  const rest=dateMatch?text.slice(dateMatch[0].length):text;
   if(!date)return {error:"날짜를 찾지 못함",raw:text};
-
   const categoryMatch=rest.match(/(?:\[\s*([^\]]+)\s*\]|(?:카테고리|분류)\s*[:：]?\s*([^\s,·|]+))/i);
   const explicitCategory=categoryMatch?resolveCategory(categoryMatch[1]||categoryMatch[2]):null;
+  const parenCandidates=[...rest.matchAll(/\(\s*([^()]{1,20})\s*\)/g)].map(m=>String(m[1]).trim());
+  const parenCategory=parenCandidates.map(x=>resolveCategory(x)).find(x=>categories.includes(x)&&x!=="기타")||null;
   const jpyMatch=rest.match(/([\d,]+(?:\.\d+)?)\s*(?:엔|JPY)|¥\s*([\d,]+(?:\.\d+)?)/i);
   const krwParenMatch=rest.match(/\(\s*[₩]?\s*([\d,]+)\s*원\s*\)/);
   const bareKrwMatch=rest.match(/(?:^|\s)([₩]?[\d,]+(?:\.\d+)?)\s*원(?=\s|$)/i);
   if(!jpyMatch&&!krwParenMatch&&!bareKrwMatch)return {error:"금액을 찾지 못함",date,raw:text};
-
   const jpy=jpyMatch?Number((jpyMatch[1]||jpyMatch[2]).replace(/,/g,"")):null;
   const krw=krwParenMatch?Number(krwParenMatch[1].replace(/,/g,"")):(bareKrwMatch?Number(bareKrwMatch[1].replace(/[₩,]/g,"")):null);
   const isKrw=!jpyMatch;
@@ -771,11 +773,11 @@ function parseBulkLine(line,fallbackDate=null){
   const isIncome=/(?:수입|용돈|월급|급여|입금|환급|받은\s*돈)/i.test(rest);
   const payment=/현금|cash|지갑|현찰/i.test(rest)?"cash":"account";
   const amount=isKrw?krw:jpy;
-
   let clean=rest
     .replace(jpyMatch||bareKrwMatch||"","")
     .replace(krwParenMatch||"","")
     .replace(/\[\s*[^\]]+\s*\]/g,"")
+    .replace(/\(\s*([^()]{1,20})\s*\)/g,(m,candidate)=>categories.includes(String(candidate).trim())?"":m)
     .replace(/^(?:\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)\s*[-:：·]?\s*/,"")
     .replace(/(?:카테고리|분류)\s*[:：]?\s*[^\s,·|]+/ig,"")
     .replace(/(?:수입|용돈|월급|급여|입금|환급|받은\s*돈)/ig,"")
@@ -783,23 +785,18 @@ function parseBulkLine(line,fallbackDate=null){
     .replace(/\b(?:현금|cash|지갑|현찰)\b/ig,"")
     .replace(/[·|]+/g," ")
     .replace(/\s+/g," ")
+    .replace(/^[:：-]+|[:：-]+$/g,"")
     .trim();
-
   let trailingCategory=null;
   for(const name of categories){
     if(!name||name==="기타"||name==="현금")continue;
     if(clean===name){trailingCategory=name;clean="";break}
     if(clean.endsWith(" "+name)){trailingCategory=name;clean=clean.slice(0,-name.length).trim();break}
   }
-
-  const category=isWithdrawal?"현금":(explicitCategory||trailingCategory||guessCategory(clean,isIncome));
+  const category=isWithdrawal?"현금":(explicitCategory||parenCategory||trailingCategory||currentCategory||guessCategory(clean,isIncome));
   const type=isWithdrawal?"cash_withdrawal":(isIncome?"income":"expense");
   const fx=(jpy&&krw)?(krw/jpy):(jpy?rate:null);
-  return {
-    date,description:clean||"일괄 입력",amount,currency:isKrw?"KRW":"JPY",
-    category,type,payment_method:isWithdrawal?"account":payment,
-    fx_rate_krw_per_jpy:fx
-  };
+  return {date,description:clean||"일괄 입력",amount,currency:isKrw?"KRW":"JPY",category,type,payment_method:isWithdrawal?"account":payment,fx_rate_krw_per_jpy:fx};
 }
 function groupedHeadingCategory(title){
   const t=title.trim();
@@ -861,16 +858,36 @@ function renderBulkPreview(){
   }
   $("bulkSaveBtn").style.display=ok.length&&ok.length===bulkDraft.length?"block":"none";
 }
+function parseFlexibleBulkText(raw,fallbackDate=null){
+  let currentDate=normalizeDateInput(fallbackDate||""),currentCategory=null;
+  const out=[];
+  for(const line of String(raw||"").split(/\r?\n/)){
+    const text=line.trim();
+    if(!text)continue;
+    const dateMatch=text.match(/(\d{4}[\.\/-]\d{1,2}[\.\/-]\d{1,2}|\d{1,2}[\.\/-]\d{1,2}|\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}\s*월\s*\d{1,2}\s*일)/);
+    if(dateMatch){const d=normalizeDateInput(dateMatch[1]);if(d)currentDate=d}
+    const remainder=dateMatch?text.slice(dateMatch.index+dateMatch[0].length).trim():text;
+    const heading=remainder.replace(/^[-•*■◆◇▶]\s*/,"").trim();
+    if(dateMatch&&!remainder)continue;
+    if(/(?:지출|수입)\s*내역\s*$/i.test(heading))continue;
+    if(/^(?:소계|실제 구매 지출 합계|현금 인출 포함 총합계|합계|총합)/i.test(heading))continue;
+    const isHeading=/^(?:■|◆|◇|▶)\s*/.test(remainder)||/^\[[^\]]+\]$/.test(heading)||/^【.+】$/.test(heading);
+    if(isHeading){
+      const catTitle=heading.replace(/^\[|\]$|^【|】$/g,"").trim();
+      const nextCat=groupedHeadingCategory(catTitle);
+      if(nextCat){currentCategory=nextCat;continue}
+    }
+    const parsed=parseBulkLine(text,currentDate||fallbackDate||today,currentCategory);
+    if(!parsed)continue;
+    if(parsed.error){out.push(parsed);continue}
+    out.push(parsed);
+  }
+  return out;
+}
 function analyzeBulk(){
   const raw=$("bulkInput").value.trim();
   if(!raw){bulkDraft=[];renderBulkPreview();return}
-
-  const fallbackDate=$("date").value||today;
-  const grouped=/■|[◆◇▶]|지출\s*내역|소계|총합계|실제 구매 지출 합계/i.test(raw);
-  bulkDraft=grouped
-    ? parseGroupedBulkText(raw,fallbackDate)
-    : raw.split(/\r?\n/).map(line=>parseBulkLine(line,fallbackDate)).filter(Boolean);
-
+  bulkDraft=parseFlexibleBulkText(raw,$("date").value||today);
   renderBulkPreview();
 }
 async function saveBulk(){
@@ -937,15 +954,16 @@ function formatMoneyInput(el){
 }
 $("amount").addEventListener("input",()=>formatMoneyInput($("amount")));
 $("amount").addEventListener("blur",()=>formatMoneyInput($("amount")));
+$("transferToAmount").addEventListener("input",()=>{if(txType==="transfer"&&!$("transferToAmount").disabled){transferAmountManual=true;formatMoneyInput($("transferToAmount"));updateTransferAutoAmount()}});
 $("transferToAmount").addEventListener("blur",()=>formatMoneyInput($("transferToAmount")));
 
-function updateTransferAutoAmount(){
+function updateTransferAutoAmount(force=false){
   if(txType!=="transfer")return;
-  const source=getAccount($("accountSelect")?.value);
-  const dest=getAccount($("transferToSelect")?.value);
+  const source=getAccount($("accountSelect")?.value),dest=getAccount($("transferToSelect")?.value);
   const amount=parseMoneyInput($("amount")?.value);
   if(!source||!dest||!amount)return;
   if(source.currency===dest.currency){
+    transferAmountManual=false;
     $("transferToAmount").value=formatMoneyValue(amount);
     $("transferToAmount").disabled=true;
     $("transferRateDisplay").value="같은 통화 · 1:1";
@@ -954,12 +972,16 @@ function updateTransferAutoAmount(){
   const existing=editingId?transactions.find(t=>t.id===editingId):null;
   const editRate=Number(existing?.transfer_fx_rate);
   const fx=Number.isFinite(editRate)&&editRate>0?editRate:rate;
-  $("transferToAmount").disabled=true;
-  $("transferRateDisplay").value="100 JPY = "+won(fx*100);
-  const incoming=source.currency==="JPY"&&dest.currency==="KRW"
-    ?amount*fx
-    :(source.currency==="KRW"&&dest.currency==="JPY"?amount/fx:amount);
-  $("transferToAmount").value=formatMoneyValue(Number(incoming.toFixed(2)));
+  $("transferToAmount").disabled=false;
+  if(!transferAmountManual||force){
+    const incoming=source.currency==="JPY"&&dest.currency==="KRW"?amount*fx:(source.currency==="KRW"&&dest.currency==="JPY"?amount/fx:amount);
+    $("transferToAmount").value=formatMoneyValue(Number(incoming.toFixed(2)));
+    $("transferRateDisplay").value="100 JPY = "+won(fx*100)+" · 자동";
+  }else{
+    const received=parseMoneyInput($("transferToAmount").value);
+    const effectiveFx=source.currency==="JPY"&&dest.currency==="KRW"?(received>0?received/amount:fx):(source.currency==="KRW"&&dest.currency==="JPY"&&received>0?amount/received:fx);
+    $("transferRateDisplay").value="100 JPY = "+won(effectiveFx*100)+" · 실제";
+  }
 }
 
 async function save(){
@@ -1024,6 +1046,7 @@ async function save(){
 }
 function resetTransactionForm(){
   editingId=null;
+  transferAmountManual=false;
   $("editNote").style.display="none";
   $("cancelEditBtn").style.display="none";
   $("saveBtn").textContent="거래 저장";
@@ -1041,7 +1064,10 @@ function editTransaction(id){
   $("paymentMethod").value=x.payment_method||"account";
   populateAccountSelects();
 
-  if(x.type==="transfer")setType("transfer");
+  if(x.type==="transfer"){
+    transferAmountManual=false;
+    setType("transfer");
+  }
   else if(x.type==="cash_withdrawal")setType("cash_withdrawal");
   else if(x.type==="income")setType("income");
   else setType("expense");
@@ -1053,7 +1079,10 @@ function editTransaction(id){
   }
   if(x.transfer_to_account_id&&[...$("transferToSelect").options].some(o=>o.value===x.transfer_to_account_id)){
     $("transferToSelect").value=x.transfer_to_account_id;
-    if(x.transfer_to_amount)$("transferToAmount").value=formatMoneyValue(x.transfer_to_amount);
+    if(x.transfer_to_amount){
+      $("transferToAmount").value=formatMoneyValue(x.transfer_to_amount);
+      transferAmountManual=true;
+    }
     updateTransferAutoAmount();
   }
 
@@ -1105,9 +1134,10 @@ function setType(t){
 }
 $("currency").onchange=()=>{populateAccountSelects();updateAmountSuffix();if(txType==="cash_withdrawal")$("transferToSelect").value=cashAccountId($("currency").value)};
 $("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
-$("accountSelect").onchange=()=>{populateAccountSelects();updateAmountSuffix();};
-$("transferToSelect").onchange=()=>{if(txType==="transfer")updateTransferAutoAmount()};
+$("accountSelect").onchange=()=>{if(txType==="transfer")transferAmountManual=false;populateAccountSelects();updateAmountSuffix();};
+$("transferToSelect").onchange=()=>{if(txType==="transfer"){transferAmountManual=false;updateTransferAutoAmount(true)}};
 $("amount").addEventListener("input",()=>{if(txType==="transfer")updateTransferAutoAmount()});
+$("transferAutoBtn").onclick=()=>{if(txType==="transfer"){transferAmountManual=false;updateTransferAutoAmount(true)}};
 $("expenseBtn").onclick=()=>{setType("expense");applyEntryDefaults("expense")};
 $("incomeBtn").onclick=()=>{setType("income");applyEntryDefaults("income")};
 $("withdrawBtn").onclick=()=>{setType("cash_withdrawal");applyEntryDefaults("cash_withdrawal")};
