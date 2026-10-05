@@ -797,7 +797,7 @@ function parseBulkLine(line,fallbackDate=null){
   const fx=(jpy&&krw)?(krw/jpy):(jpy?rate:null);
   return {
     date,description:clean||"일괄 입력",amount,currency:isKrw?"KRW":"JPY",
-    category,type,payment_method:(isWithdrawal||isIncome)?"account":payment,
+    category,type,payment_method:isWithdrawal?"account":payment,
     fx_rate_krw_per_jpy:fx
   };
 }
@@ -1113,8 +1113,6 @@ $("incomeBtn").onclick=()=>{setType("income");applyEntryDefaults("income")};
 $("withdrawBtn").onclick=()=>{setType("cash_withdrawal");applyEntryDefaults("cash_withdrawal")};
 $("transferBtn").onclick=()=>{setType("transfer");applyEntryDefaults("transfer")};
 $("saveBtn").onclick=save;
-$("paymentMethod").onchange=()=>{if(txType==="cash_withdrawal")$("paymentMethod").value="account";populateAccountSelects()};
-
 let rate=9.0;
 async function getRate(){
   $("rateText").textContent="불러오는 중…";
@@ -1136,6 +1134,8 @@ async function getRate(){
     if(Number.isFinite(saved)&&saved>0) rate=saved;
     $("rateText").textContent=won(rate*100);
     $("rateMeta").textContent="자동 환율 불러오기 실패 · 마지막 값 사용";
+    render();
+    updateTransferAutoAmount();
     console.error("환율 불러오기 실패",e);
   }
 }
@@ -1181,7 +1181,12 @@ function renderCalendar(){
     el.innerHTML='<div class="day-num"></div>'+(inc?'<div class="day-in"></div>':"")+(out?'<div class="day-out"></div>':"")+(cash?'<div class="day-cash"></div>':"");
     el.querySelector(".day-num").textContent=d;
     if(inc)el.querySelector(".day-in").textContent="+"+shortKrw(inc);
-    if(out)el.querySelector(".day-out").textContent="-"+shortKrw(out);if(cash){const cashTx=dayTx.find(x=>x.type==="cash_withdrawal");el.querySelector(".day-cash").textContent="🏧 "+(cashTx?.currency==="JPY"?yen(cashTx.amount):won(cashTx?.amount||0));}
+    if(out)el.querySelector(".day-out").textContent="-"+shortKrw(out);
+    if(cash){
+      const cashTxs=dayTx.filter(x=>x.type==="cash_withdrawal");
+      if(cashTxs.length===1){const cashTx=cashTxs[0];el.querySelector(".day-cash").textContent="🏧 "+(cashTx.currency==="JPY"?yen(cashTx.amount):won(cashTx.amount||0));}
+      else el.querySelector(".day-cash").textContent="🏧 "+cashTxs.length+"건";
+    }
     el.onclick=()=>{selectedCalendarDate=key;calendarYear=y;calendarMonth=m;renderCalendar()};
     grid.appendChild(el);
   }
@@ -1541,7 +1546,7 @@ async function restoreFromBackupFile(file){
     rows.forEach((x,i)=>{
       if(!x||typeof x!=="object")throw new Error((i+1)+"번째 거래 형식이 올바르지 않아.");
       const amount=Number(x.amount);
-      if(!x.date||!/^d{4}-d{2}-d{2}$/.test(String(x.date)))throw new Error((i+1)+"번째 거래의 날짜가 올바르지 않아.");
+      if(!x.date||!/^\d{4}-\d{2}-\d{2}$/.test(String(x.date)))throw new Error((i+1)+"번째 거래의 날짜가 올바르지 않아.");
       if(!Number.isFinite(amount)||amount<=0)throw new Error((i+1)+"번째 거래의 금액이 올바르지 않아.");
       if(!allowedCurrencies.includes(x.currency))throw new Error((i+1)+"번째 거래의 통화가 올바르지 않아.");
       if(!allowedTypes.includes(x.type))throw new Error((i+1)+"번째 거래의 유형이 올바르지 않아.");
