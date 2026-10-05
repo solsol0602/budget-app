@@ -1008,8 +1008,16 @@ async function save(){
     if(destAcct.currency===currency)transferToAmount=amount;
     else{
       const oldFx=Number(existing?.transfer_fx_rate);
-      transferFxRate=Number.isFinite(oldFx)&&oldFx>0?oldFx:rate;
-      transferToAmount=currency==="JPY"&&destAcct.currency==="KRW"?amount*transferFxRate:(currency==="KRW"&&destAcct.currency==="JPY"?amount/transferFxRate:amount);
+      const entered=transferAmountManual?parseMoneyInput($("transferToAmount").value):0;
+      if(entered>0){
+        transferToAmount=entered;
+        transferFxRate=currency==="JPY"&&destAcct.currency==="KRW"
+          ?entered/amount
+          :(currency==="KRW"&&destAcct.currency==="JPY"?amount/entered:rate);
+      }else{
+        transferFxRate=Number.isFinite(oldFx)&&oldFx>0?oldFx:rate;
+        transferToAmount=currency==="JPY"&&destAcct.currency==="KRW"?amount*transferFxRate:(currency==="KRW"&&destAcct.currency==="JPY"?amount/transferFxRate:amount);
+      }
     }
   }
 
