@@ -1,4 +1,4 @@
-const CACHE="hanil-budget-v53";
+const CACHE="hanil-budget-v54";
 const CORE=["./","./index.html","./manifest.webmanifest"];
 
 self.addEventListener("install",event=>{
